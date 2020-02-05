@@ -1,6 +1,6 @@
 manifest:
   defaults:
-    remote: ruuvi_node
+    remote: ruuvi
 
   remotes:
     - name: ruuvi
