@@ -17,11 +17,15 @@ manifest:
       url-base: https://github.com/civetweb
     
   projects:
+    - name: zephyr
+      repo-path: fw-nrfconnect-zephyr
+      west-commands: scripts/west-commands.yml
+      revision: 43f55fa7be2c86116af78e0a60486e5131b16ea1
     - name: ncs
-    - repo-path: fw-nrfconnect-nrf
-    - remote: ncs
-    - path: ruuvi/
-    - revision: v1.1.0
+      repo-path: fw-nrfconnect-nrf
+      remote: ncs
+      path: ruuvi/
+      revision: v1.1.0
   
   self:
     path: ruuvi_node
