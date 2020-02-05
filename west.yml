@@ -1,0 +1,27 @@
+manifest:
+  defaults:
+    remote: ruuvi_node
+
+  remotes:
+    - name: ruuvi
+      url-base: https://github.com/ruuvi
+    - name: ncs
+      url-base: https://github.com/NordicPlayground
+    - name: zephyrproject
+      url-base: https://github.com/zephyrproject-rtos
+    - name: throwtheswitch
+      url-base: https://github.com/ThrowTheSwitch
+    - name: armmbed
+      url-base: https://github.com/ARMmbed
+    - name: civetweb
+      url-base: https://github.com/civetweb
+    
+  projects:
+    - name: ncs
+    - repo-path: fw-nrfconnect-nrf
+    - remote: ncs
+    - path: ruuvi/
+    - revision: v1.1.0
+  
+  self:
+    path: ruuvi_node
