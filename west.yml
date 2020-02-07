@@ -26,7 +26,6 @@ manifest:
       repo-path: fw-nrfconnect-nrf
       remote: ncs
       path: nrf
-      revision: v1.1.0
     - name: segger
       revision: 6fcf61606d6012d2c44129edc033f59331e268bc
       path: modules/debug/segger
