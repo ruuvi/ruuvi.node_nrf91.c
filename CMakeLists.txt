@@ -4,3 +4,5 @@ project(ruuvi_node)
 
 target_sources(app PRIVATE src/main.c)
 zephyr_include_directories(src)
+
+add_subdirectory(src/led_controller)
