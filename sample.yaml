@@ -3,7 +3,6 @@ sample:
 tests:
   sample.basic.blinky:
     tags: LED gpio
-    filter: dt_compat_enabled_with_alias("gpio-leds", "led0")
+    filter: dt_compat_enabled_with_alias("gpio-leds", "led0", "led1", "led2", "led3")
     depends_on: gpio
     harness: led
-    platform_whitelist: nrf9160_pca10090

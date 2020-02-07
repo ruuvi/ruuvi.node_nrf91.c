@@ -12,7 +12,7 @@
 #define THREE_LED_PORT	DT_ALIAS_LED2_GPIOS_CONTROLLER
 #define THREE_LED		DT_ALIAS_LED2_GPIOS_PIN
 #define FOUR_LED_PORT	DT_ALIAS_LED3_GPIOS_CONTROLLER
-#define FOUR_LED		DT_ALIAS_LED4_GPIOS_PIN
+#define FOUR_LED		DT_ALIAS_LED3_GPIOS_PIN
 #define SLEEP_TIME	1000
 #define LED_TIME	100
 
@@ -39,31 +39,32 @@ static void led_init(void)
 	gpio_pin_write(led_four, FOUR_LED, 1);
 }
 
-static void flash_led(int *led)
+static void flash_led_one(struct device *dev)
 {
-    switch(led){
-        case 1:
-            gpio_pin_write(led_one, ONE_LED, 0);
-            k_sleep(LED_TIME);
-            gpio_pin_write(led_one, ONE_LED, 1);
-            break;
-        case 2:
-        	gpio_pin_write(led_two, TWO_LED, 0);
-            k_sleep(LED_TIME);
-        	gpio_pin_write(led_two, TWO_LED, 1);
-            break;
-        case 3:
-            gpio_pin_write(led_three, THREE_LED, 0);
-            k_sleep(LED_TIME);
-            gpio_pin_write(led_three, THREE_LED, 1);
-            break;
-        case 4:
-        	gpio_pin_write(led_four, FOUR_LED, 0);
-            k_sleep(LED_TIME);
-        	gpio_pin_write(led_four, FOUR_LED, 1);
-            break;
-    }
+    gpio_pin_write(dev, ONE_LED, 0);
+    k_sleep(LED_TIME);
+    gpio_pin_write(dev, ONE_LED, 1);
+}
 
+static void flash_led_two(struct device *dev)
+{
+    gpio_pin_write(dev, TWO_LED, 0);
+    k_sleep(LED_TIME);
+    gpio_pin_write(dev, TWO_LED, 1);
+}
+
+static void flash_led_three(struct device *dev)
+{
+    gpio_pin_write(dev, THREE_LED, 0);
+    k_sleep(LED_TIME);
+    gpio_pin_write(dev, THREE_LED, 1);
+}
+
+static void flash_led_four(struct device *dev)
+{
+    gpio_pin_write(dev, FOUR_LED, 0);
+    k_sleep(LED_TIME);
+    gpio_pin_write(dev, FOUR_LED, 1);
 }
 
 void main(void)
@@ -71,13 +72,13 @@ void main(void)
 	led_init();
 
 	while (true) {
-		flash_led(1);
+		flash_led_one(led_one);
 		k_sleep(SLEEP_TIME);
-        flash_led(2);
+        flash_led_two(led_two);
         k_sleep(SLEEP_TIME);
-        flash_led(3);
+        flash_led_three(led_three);
 		k_sleep(SLEEP_TIME);
-        flash_led(4);
+        flash_led_four(led_four);
         k_sleep(SLEEP_TIME);
 	}
 }
