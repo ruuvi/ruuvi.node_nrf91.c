@@ -1,7 +1,0 @@
-{
-    "files.associations": {
-        "zephyr.h": "c",
-        "uart.h": "c",
-        "led_controller.h": "c"
-    }
-}
