@@ -1,5 +1,5 @@
 #include <zephyr.h>
 
-void uart_init(void);
+u8_t uart_init();
 
 void process_uart(void);

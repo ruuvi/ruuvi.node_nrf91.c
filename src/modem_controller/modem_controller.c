@@ -14,13 +14,14 @@
 /**@brief Configures modem to provide LTE link. Blocks until link is
  * successfully established.
  */
-static void modem_configure(void)
+u8_t modem_init()
 {
 #if defined(CONFIG_BSD_LIBRARY)
 	if (IS_ENABLED(CONFIG_LTE_AUTO_INIT_AND_CONNECT)) {
 		/* Do nothing, modem is already turned on
 		 * and connected.
 		 */
+		return 0;
 	} else {
 		int err;
 
@@ -31,7 +32,9 @@ static void modem_configure(void)
 		if (err) {
 			LOG_ERR("LTE link could not be established.");
 			error_handler(ERROR_LTE_LC, err);
+			return err;
 		}
+		return err;
 
 		LOG_INF("Connected to LTE network");
 	}

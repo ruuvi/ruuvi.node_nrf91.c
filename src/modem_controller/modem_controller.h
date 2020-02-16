@@ -1,3 +1,3 @@
 #include <zephyr.h>
 
-static void modem_configure(void);
+u8_t mdoem_init();
