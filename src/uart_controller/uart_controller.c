@@ -14,7 +14,7 @@
 #define SLEEP_TIME	10000
 
 //Define the device
-#define BLE_UART "UART_0"
+#define BLE_UART "UART_1"
 static struct device *uart_dev;
 
 
@@ -34,34 +34,42 @@ struct adv_report_table adv_reports_buf;
 #define NRF_CMD1_LEN 3
 #define NRF_CMD2_LEN 1*/
 
+static u8_t uart_buf[1024];
 
+/*
 static void uart_data_parse(u8_t uart_data){
     
 	char* data;
     char* rssi;
 	char* tag_mac;
-    char buffer[512];
-    char buf[512];
-    sprintf(buffer, "%c", uart_data);
-    sprintf(buf, "%s", buffer);
-	tag_mac = strtok(buf, ",");
+    memcmp(data, uart_data, sizeof(uart_data));
+    char* buffer[1025];
+    //char buf[512];
+    sprintf(buffer, "%s", uart_data);
+    
+    printk("%c", buffer);
+	//tag_mac = strtok((char*)uart_data, ",");
+    /*
 	data = strtok(NULL, ",");
+    puts(data);
     rssi = strtok(NULL, ",");
+    puts(rssi);*/
 	
-    printf("%s", tag_mac);
-}
+    //(tag_mac);
+}*/
+
 
 static void uart_fifo_callback(struct device *dev)
 {
-    u8_t data;
-    
-    if (!uart_irq_update(dev)) {
-        printk("Error: uart_irq_update");
-    }
-    if (uart_irq_rx_ready(dev)) {
-        uart_fifo_read(dev, &data, 1);
-        uart_data_parse(data);
-    }
+    uart_irq_update(dev);
+	int data_length = 0;
+
+	if (uart_irq_rx_ready(dev)) {
+		data_length = uart_fifo_read(dev, uart_buf, sizeof(uart_buf));
+		uart_buf[data_length] = 0;
+	}
+	printk("%s", uart_buf);    
+    //uart_data_parse(uart_buf);
 }
 
 void uart_driver_write(char *data)      
