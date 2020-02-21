@@ -27,10 +27,20 @@ static atomic_val_t GPS_STATUS;
 static struct gps_data gps_data;
 static u16_t gps_readings = 0;
 
+static struct device *gps_dev;
+
 void gpsT(void){
 	while (1){
-		flash_led_one();
-		k_sleep(SLEEP_TIME);
+		if(!atomic_get(&GPS_STATUS)){
+			while(!atomic_get(&GPS_STATUS)){
+				flash_led_one();
+				gps_update_handler();
+				k_sleep(SLEEP_TIME*60);
+			}
+		}
+		else{
+			k_sleep(SLEEP_TIME);
+		}
 	}	
 }
 
@@ -69,54 +79,46 @@ K_THREAD_DEFINE(uart, STACKSIZE, uartT, NULL, NULL, NULL,	PRIORITY, 0, K_NO_WAIT
 K_THREAD_DEFINE(send, STACKSIZE, sendT, NULL, NULL, NULL,	PRIORITY, 0, K_NO_WAIT);
 
 /**@brief Callback for GPS trigger events */
-static void gps_trigger_handler(struct device *dev, struct gps_trigger *trigger)
+void gps_update_handler(void)
 {
 	printk("running GPS trigger");
-	ARG_UNUSED(trigger);
 	int err;
 	
-	err = gps_sample_fetch(dev);
+	err = gps_sample_fetch(gps_dev);
 	__ASSERT(err == 0, "GPS sample could not be fetched.");
 	
-	err = gps_channel_get(dev, GPS_CHAN_NMEA, &gps_data);
+	err = gps_channel_get(gps_dev, GPS_CHAN_NMEA, &gps_data);
 	__ASSERT(err == 0, "GPS sample could not be retrieved.");
 	
 	if(err !=0){
 		gps_readings++;
 	}
 	printk("%d", gps_readings);
+	return;
 }
 
 /**@brief Initializes GPS device and configures trigger if set.
  * Gets initial sample from GPS device.
  */
-static void gps_init(void)
+static int gps_init(void)
 {
 	int err;
-	struct device *gps_dev = device_get_binding(CONFIG_GPS_DEV_NAME);
-	struct gps_trigger gps_trig = {
-		.type = GPS_TRIG_DATA_READY,
-	};
+	gps_dev = device_get_binding(CONFIG_GPS_DEV_NAME);
 
 	if (gps_dev == NULL) {
 		printk("Could not get %s device\n", CONFIG_GPS_DEV_NAME);
 		return;
 	}
 	printk("GPS device found\n");
-
-	if (IS_ENABLED(CONFIG_GPS_TRIGGER)) {
-		err = gps_trigger_set(gps_dev, &gps_trig, gps_trigger_handler);
-		if (err) {
-			printk("Could not set trigger, error code: %d\n", err);
-			return;
-		}
-	}
+	
 
 	err = gps_sample_fetch(gps_dev);
 	__ASSERT(err == 0, "GPS sample could not be fetched.");
 
 	err = gps_channel_get(gps_dev, GPS_CHAN_NMEA, &gps_data);
 	__ASSERT(err == 0, "GPS sample could not be retrieved.");
+
+	return err;
 }
 
 /**@brief Configures modem to provide LTE link. Blocks until link is
@@ -145,7 +147,8 @@ static void sensors_init(void)
 
 	led_init();
 	int ut = atomic_get(&UART_STATUS);
-	int md =atomic_get(&MODEM_STATUS);
+	int md = atomic_get(&MODEM_STATUS);
+	int gp = atomic_get(&GPS_STATUS);
 	
 	toggle_led_two(ut);
 	
@@ -163,7 +166,10 @@ static void sensors_init(void)
 	atomic_set(&MODEM_STATUS, md);
 	toggle_led_three(md);
 
-	gps_init();
+	toggle_led_one(gp);
+	gp = gps_init();
+	atomic_set(&MODEM_STATUS, gp);
+	toggle_led_one(gp);
 }
 
 void main(void)
