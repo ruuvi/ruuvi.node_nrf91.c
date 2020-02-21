@@ -11,7 +11,6 @@
 
 //NTP
 #include <net/socket.h>
-#include <uart.h>
 #include <string.h>
 #include <time.h>
 

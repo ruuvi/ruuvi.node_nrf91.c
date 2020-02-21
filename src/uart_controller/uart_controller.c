@@ -53,7 +53,7 @@ static void uart_data_parse(u8_t uart_data){
 	data = strtok(NULL, ",");
     puts(data);
     rssi = strtok(NULL, ",");
-    puts(rssi);*/
+    puts(rssi);
 	
     //(tag_mac);
 }*/
