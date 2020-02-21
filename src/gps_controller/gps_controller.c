@@ -17,7 +17,6 @@ LOG_MODULE_REGISTER(gps_control, CONFIG_GPS_CONTROL_LOG_LEVEL);
 
 static struct k_work_q *gps_work_q;
 
-#if !defined(CONFIG_GPS_SIM)
 /* Structure to hold GPS work information */
 static struct {
 	enum {
@@ -131,58 +130,48 @@ static void gps_work_handler(struct k_work *work)
 					       K_SECONDS(CONFIG_GPS_CONTROL_FIX_CHECK_INTERVAL));
 	}
 }
-#endif /* !defined(GPS_SIM) */
 
 bool gps_control_is_active(void)
 {
-#if !defined(CONFIG_GPS_SIM)
 	return atomic_get(&gps_is_active);
-#else
-	return false;
-#endif
+
 }
 
 bool gps_control_is_enabled(void)
 {
-#if !defined(CONFIG_GPS_SIM)
 	return atomic_get(&gps_is_enabled);
-#else
-	return false;
-#endif
 }
 
 void gps_control_enable(void)
 {
-#if !defined(CONFIG_GPS_SIM)
+
 	atomic_set(&gps_is_enabled, 1);
 	gps_control_start(K_SECONDS(1));
-#endif
+
 }
 
 void gps_control_disable(void)
 {
-#if !defined(CONFIG_GPS_SIM)
+
 	atomic_set(&gps_is_enabled, 0);
 	gps_control_stop(K_NO_WAIT);
-#endif
+
 }
 
 void gps_control_stop(u32_t delay_ms)
 {
-#if !defined(CONFIG_GPS_SIM)
+
 	k_delayed_work_cancel(&gps_work.work);
 	gps_work.type = GPS_WORK_STOP;
 	k_delayed_work_submit_to_queue(gps_work_q, &gps_work.work, delay_ms);
-#endif
+
 }
 
 void gps_control_start(u32_t delay_ms)
 {
-#if !defined(CONFIG_GPS_SIM)
 	k_delayed_work_cancel(&gps_work.work);
 	gps_work.type = GPS_WORK_START;
 	k_delayed_work_submit_to_queue(gps_work_q, &gps_work.work, delay_ms);
-#endif
 }
 
 void gps_control_on_trigger(void)
@@ -202,16 +191,6 @@ int gps_control_init(struct k_work_q *work_q, gps_trigger_handler_t handler)
 	int err;
 	struct device *gps_dev;
 	gps_work_q = work_q;
-#ifdef CONFIG_GPS_SIM
-	struct gps_trigger gps_trig = {
-		.type = GPS_TRIG_DATA_READY
-	};
-#else
-	struct gps_trigger gps_trig = {
-		.type = GPS_TRIG_FIX,
-		.chan = GPS_CHAN_NMEA
-	};
-#endif /* CONFIG_GPS_SIM */
 
 	gps_dev = device_get_binding(CONFIG_GPS_DEV_NAME);
 	if (gps_dev == NULL) {
@@ -227,11 +206,11 @@ int gps_control_init(struct k_work_q *work_q, gps_trigger_handler_t handler)
 		return err;
 	}
 
-#if !defined(CONFIG_GPS_SIM)
+
 	k_delayed_work_init(&gps_work.work, gps_work_handler);
 
 	gps_work.dev = gps_dev;
-#endif
+
 	LOG_INF("GPS initialized");
 
 	return 0;

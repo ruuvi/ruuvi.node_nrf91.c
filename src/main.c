@@ -1,202 +1,179 @@
 #include <zephyr.h>
 #include <stdio.h>
-#include <sys/util.h>
-#include <drivers/uart.h>
+#include <string.h>
+#include <drivers/gps.h>
+
+#include <lte_lc.h>
+#include <net/bsdlib.h>
 
 #include "led_controller.h"
 #include "uart_controller.h"
 //#include "modem_controller.h"
 
+/* size of stack area used by each thread */
+#define STACKSIZE 1024
+
+/* scheduling priority used by each thread */
+#define PRIORITY 7
+
+
 #define SLEEP_TIME	1000
 
-//NTP
-#include <net/socket.h>
-#include <string.h>
-#include <time.h>
+static atomic_val_t UART_STATUS;
+static atomic_val_t MODEM_STATUS;
+static atomic_val_t GPS_STATUS;
 
-#define NTP_HOST "ntp.uio.no"
-#define NTP_PORT 123
-#define RECV_BUF_SIZE 1024
-#define NTP_TO_UNIX_OFFSET 2208988800ULL
-char recv_buf[RECV_BUF_SIZE];
+/* Sensor data */
+static struct gps_data gps_data;
+static u16_t gps_readings = 0;
 
-/* From NTP RFCs https://www.ietf.org/rfc/rfc5905.txt */
-struct ntp_format {
-	u8_t flags;
-	u8_t stratum; /* stratum */
-	u8_t poll; /* poll interval */
-	s8_t precision; /* precision */
-	u32_t rootdelay; /* root delay */
-	u32_t rootdisp; /* root dispersion */
-	u32_t refid; /* reference ID */
-	u32_t reftime_sec; /* reference time */
-	u32_t reftime_frac; /* reference time */
-	u32_t org_sec; /* origin timestamp */
-	u32_t org_frac; /* origin timestamp */
-	u32_t rec_sec; /* receive timestamp */
-	u32_t rec_frac; /* receive timestamp */
-	u32_t xmt_sec; /* transmit timestamp */
-	u32_t xmt_frac; /* transmit timestamp */
-};
-
-struct ntp_format ntp = { 0 };
-
-static u8_t UART_STATUS = 1;
-//static u8_t MODEM_STATUS = 1;
-
-int blocking_recv(int fd, u8_t *buf, u32_t size, u32_t flags)
-{
-	int err;
-
-	do {
-		err = recv(fd, buf, size, flags);
-	} while (err < 0 && errno == EAGAIN);
-
-	return err;
+void gpsT(void){
+	while (1){
+		flash_led_one();
+		k_sleep(SLEEP_TIME);
+	}	
 }
 
-int blocking_recvfrom(int fd, void *buf, u32_t size, u32_t flags,
-		      struct sockaddr *src_addr, socklen_t *addrlen)
-{
-	int err;
-
-	do {
-		err = recvfrom(fd, buf, size, flags, src_addr, addrlen);
-	} while (err < 0 && errno == EAGAIN);
-
-	return err;
+void uartT(void){
+	while (1){
+		if(!atomic_get(&UART_STATUS)){
+			while (!atomic_get(&UART_STATUS)){
+				flash_led_two();
+				k_sleep(SLEEP_TIME);
+			}
+		}
+		else{
+			k_sleep(SLEEP_TIME);
+		}
+	}		
 }
 
-int blocking_send(int fd, u8_t *buf, u32_t size, u32_t flags)
-{
-	int err;
-
-	do {
-		err = send(fd, buf, size, flags);
-	} while (err < 0 && errno == EAGAIN);
-
-	return err;
-}
-
-int blocking_connect(int fd, struct sockaddr *local_addr, socklen_t len)
-{
-	int err;
-
-	do {
-		err = connect(fd, local_addr, len);
-	} while (err < 0 && errno == EAGAIN);
-
-	return err;
-}
-
-void ntp_swap_endianess(struct ntp_format *ntp)
-{
-	if (ntp) {
-		ntp->org_frac = htonl(ntp->org_frac);
-		ntp->org_sec = htonl(ntp->org_sec);
-		ntp->reftime_frac = htonl(ntp->reftime_frac);
-		ntp->reftime_sec = htonl(ntp->reftime_sec);
-		ntp->rec_frac = htonl(ntp->rec_frac);
-		ntp->rec_sec = htonl(ntp->rec_sec);
-		ntp->xmt_frac = htonl(ntp->xmt_frac);
-		ntp->xmt_sec = htonl(ntp->xmt_sec);
+void sendT(void){
+	while(1){
+		if(!atomic_get(&MODEM_STATUS)){
+			while (!atomic_get(&MODEM_STATUS)){
+				flash_led_three();
+				k_sleep(SLEEP_TIME);
+			}
+		}
+		else{
+			k_sleep(SLEEP_TIME);
+		}
 	}
 }
 
-void ntp_print(struct ntp_format *ntp)
+K_THREAD_DEFINE(gps, STACKSIZE, gpsT, NULL, NULL, NULL, PRIORITY, 0, K_NO_WAIT);
+
+K_THREAD_DEFINE(uart, STACKSIZE, uartT, NULL, NULL, NULL,	PRIORITY, 0, K_NO_WAIT);
+
+K_THREAD_DEFINE(send, STACKSIZE, sendT, NULL, NULL, NULL,	PRIORITY, 0, K_NO_WAIT);
+
+/**@brief Callback for GPS trigger events */
+static void gps_trigger_handler(struct device *dev, struct gps_trigger *trigger)
 {
-	if (ntp == NULL) {
+	printk("running GPS trigger");
+	ARG_UNUSED(trigger);
+	int err;
+	
+	err = gps_sample_fetch(dev);
+	__ASSERT(err == 0, "GPS sample could not be fetched.");
+	
+	err = gps_channel_get(dev, GPS_CHAN_NMEA, &gps_data);
+	__ASSERT(err == 0, "GPS sample could not be retrieved.");
+	
+	if(err !=0){
+		gps_readings++;
+	}
+	printk("%d", gps_readings);
+}
+
+/**@brief Initializes GPS device and configures trigger if set.
+ * Gets initial sample from GPS device.
+ */
+static void gps_init(void)
+{
+	int err;
+	struct device *gps_dev = device_get_binding(CONFIG_GPS_DEV_NAME);
+	struct gps_trigger gps_trig = {
+		.type = GPS_TRIG_DATA_READY,
+	};
+
+	if (gps_dev == NULL) {
+		printk("Could not get %s device\n", CONFIG_GPS_DEV_NAME);
 		return;
 	}
+	printk("GPS device found\n");
 
-	printk("Flags: %u\n", ntp->flags);
-	printk("Stratum: %u\n", ntp->stratum);
-	printk("Poll: %u\n", ntp->poll);
-	printk("Precision: %u\n", ntp->precision);
-	printk("Root delay: %u\n", ntp->rootdelay);
-	printk("Root dispersion: %u\n", ntp->rootdisp);
-	printk("Ref ID: %u\n", ntp->refid);
-	printk("Ref timestamp: %u", ntp->reftime_sec);
-	printk("%u\n", ntp->reftime_frac);
-	printk("Orig Timestamp: %u", ntp->org_sec);
-	printk("%u\n", ntp->org_frac);
-	printk("Receive timestamp: %u", ntp->rec_sec);
-	printk("%u\n", ntp->rec_frac);
-	printk("Transmit: %u", ntp->xmt_sec);
-	printk("%u\n", ntp->xmt_frac);
+	if (IS_ENABLED(CONFIG_GPS_TRIGGER)) {
+		err = gps_trigger_set(gps_dev, &gps_trig, gps_trigger_handler);
+		if (err) {
+			printk("Could not set trigger, error code: %d\n", err);
+			return;
+		}
+	}
 
-	u32_t unix_time = ntp->xmt_sec - NTP_TO_UNIX_OFFSET;
-	printk("Unix time: %d\n", unix_time);
+	err = gps_sample_fetch(gps_dev);
+	__ASSERT(err == 0, "GPS sample could not be fetched.");
 
-	time_t time = unix_time;
-	printf("Time: %s", ctime(&time));
+	err = gps_channel_get(gps_dev, GPS_CHAN_NMEA, &gps_data);
+	__ASSERT(err == 0, "GPS sample could not be retrieved.");
 }
 
-void app_ntp_socket_start(void)
+/**@brief Configures modem to provide LTE link. Blocks until link is
+ * successfully established.
+ */
+static int modem_configure(void)
 {
-	struct addrinfo *res;
-	socklen_t addrlen = sizeof(struct sockaddr_storage);
+	int err;
+	if (IS_ENABLED(CONFIG_LTE_AUTO_INIT_AND_CONNECT)) {
+		/* Do nothing, modem is already turned on and connected. */
+	} else {
+		
+		printk("Establishing LTE link (this may take some time) ...\n");
+		err = lte_lc_init_and_connect();
+		__ASSERT(err == 0, "LTE link could not be established.");
+		return err;
+	}
+}
 
-	ntp.flags = 0xe3;
-	int err = getaddrinfo(NTP_HOST, NULL, NULL, &res);
+/**@brief Initializes the peripherals that are used by the application. */
+static void sensors_init(void)
+{
+	atomic_set(&UART_STATUS, 1);
+	atomic_set(&MODEM_STATUS, 1);
+	atomic_set(&GPS_STATUS, 1);
 
-	printk("getaddrinfo err: %d\n\r", err);
-	((struct sockaddr_in *)res->ai_addr)->sin_port = htons(NTP_PORT);
-	struct sockaddr_in local_addr;
-
-	local_addr.sin_family = AF_INET;
-	local_addr.sin_port = htons(0);
-	local_addr.sin_addr.s_addr = 0;
-
-	int client_fd = socket(AF_INET, SOCK_DGRAM, 0);
-	printk("client_fd: %d\n\r", client_fd);
-
-	err = bind(client_fd, (struct sockaddr *)&local_addr,
-		   sizeof(local_addr));
-	printk("bind err: %d\n\r", err);
-
-	err = blocking_connect(client_fd, (struct sockaddr *)res->ai_addr,
-			       sizeof(struct sockaddr_in));
-	if (err < 0) {
-		printk("connect err: %d\n\r", errno);
+	led_init();
+	int ut = atomic_get(&UART_STATUS);
+	int md =atomic_get(&MODEM_STATUS);
+	
+	toggle_led_two(ut);
+	
+	while(ut){
+		ut = uart_init();
 	}
 
-	err = send(client_fd, &ntp, sizeof(struct ntp_format), 0);
-	printk("sendto ret: %d\n\r", err);
-	if (err < 0) {
-		printk("sendto err: %d\n\r", errno);
-	}
+	toggle_led_two(ut);
+	atomic_set(&UART_STATUS, ut);
+	
 
-	err = blocking_recvfrom(client_fd, &ntp, sizeof(struct ntp_format), 0,
-				(struct sockaddr *)res->ai_addr, &addrlen);
-	if (err < 0) {
-		printk("recvfrom err: %d\n\r", errno);
-	}
-	ntp_swap_endianess(&ntp);
-	ntp_print(&ntp);
-	freeaddrinfo(res);
-	(void)close(client_fd);
+	
+	toggle_led_three(md);
+	md = modem_configure();
+	atomic_set(&MODEM_STATUS, md);
+	toggle_led_three(md);
+
+	gps_init();
 }
 
 void main(void)
 {
-	led_init();
-	/*
-	toggle_led_two(MODEM_STATUS);
-	MODEM_STATUS = modem_init();
-	toggle_led_two(MODEM_STATUS);
-	*/
-	toggle_led_three(UART_STATUS);
-	while(UART_STATUS){
-		UART_STATUS = uart_init();
-	}
-	toggle_led_three(UART_STATUS);
+	printk("Application started\n");
 
-	app_ntp_socket_start();
+	sensors_init();
 	
 	while(1){
+		flash_led_four();
 		k_sleep(SLEEP_TIME);
-		flash_led_one();
-		ntp_print(&ntp);
 	}
 }
