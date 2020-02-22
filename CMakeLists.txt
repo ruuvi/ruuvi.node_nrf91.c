@@ -17,6 +17,6 @@ zephyr_include_directories(src)
 
 add_subdirectory(src/led_controller)
 add_subdirectory(src/uart_controller)
-#add_subdirectory(src/gps_controller)
-#add_subdirectory(src/modem_controller)
+add_subdirectory(src/gps_controller)
+add_subdirectory(src/modem_controller)
 #add_subdirectory(src/watchdog)

@@ -3,10 +3,9 @@
 #include <net/bsdlib.h>
 #include <bsd.h>
 #include <lte_lc.h>
-#include <modem_info.h>
 #endif /* CONFIG_BSD_LIBRARY */
 
-#include <net/socket.h>
+//#include <net/socket.h>
 #include "modem_controller.h"
 
 
@@ -14,29 +13,16 @@
 /**@brief Configures modem to provide LTE link. Blocks until link is
  * successfully established.
  */
-u8_t modem_init()
+int modem_init(void)
 {
-#if defined(CONFIG_BSD_LIBRARY)
+	int err;
 	if (IS_ENABLED(CONFIG_LTE_AUTO_INIT_AND_CONNECT)) {
-		/* Do nothing, modem is already turned on
-		 * and connected.
-		 */
-		return 0;
+		/* Do nothing, modem is already turned on and connected. */
 	} else {
-		int err;
-
-		LOG_INF("Connecting to LTE network. ");
-		LOG_INF("This may take several minutes.");
-
+		
+		printk("Establishing LTE link (this may take some time) ...\n");
 		err = lte_lc_init_and_connect();
-		if (err) {
-			LOG_ERR("LTE link could not be established.");
-			error_handler(ERROR_LTE_LC, err);
-			return err;
-		}
+		__ASSERT(err == 0, "LTE link could not be established.");
 		return err;
-
-		LOG_INF("Connected to LTE network");
 	}
-#endif
 }

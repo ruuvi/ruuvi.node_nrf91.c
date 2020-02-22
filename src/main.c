@@ -8,7 +8,8 @@
 
 #include "led_controller.h"
 #include "uart_controller.h"
-//#include "modem_controller.h"
+#include "modem_controller.h"
+#include "gps_controller.h"
 
 /* size of stack area used by each thread */
 #define STACKSIZE 1024
@@ -27,14 +28,20 @@ static atomic_val_t GPS_STATUS;
 static struct gps_data gps_data;
 static u16_t gps_readings = 0;
 
-static struct device *gps_dev;
+
 
 void gpsT(void){
 	while (1){
 		if(!atomic_get(&GPS_STATUS)){
 			while(!atomic_get(&GPS_STATUS)){
 				flash_led_one();
-				gps_update_handler();
+				if(gps_update_handler(gps_data)==0){
+					++gps_readings;
+					printk("Reading: %d \nlongitude: %d\nlatitude: %d\n", gps_readings, &gps_data.pvt.longitude, &gps_data.pvt.latitude);
+				}
+				else{
+					printk("Failed to get GPS update");
+				}				
 				k_sleep(SLEEP_TIME*60);
 			}
 		}
@@ -78,65 +85,6 @@ K_THREAD_DEFINE(uart, STACKSIZE, uartT, NULL, NULL, NULL,	PRIORITY, 0, K_NO_WAIT
 
 K_THREAD_DEFINE(send, STACKSIZE, sendT, NULL, NULL, NULL,	PRIORITY, 0, K_NO_WAIT);
 
-/**@brief Callback for GPS trigger events */
-void gps_update_handler(void)
-{
-	printk("running GPS trigger");
-	int err;
-	
-	err = gps_sample_fetch(gps_dev);
-	__ASSERT(err == 0, "GPS sample could not be fetched.");
-	
-	err = gps_channel_get(gps_dev, GPS_CHAN_NMEA, &gps_data);
-	__ASSERT(err == 0, "GPS sample could not be retrieved.");
-	
-	if(err !=0){
-		gps_readings++;
-	}
-	printk("%d", gps_readings);
-	return;
-}
-
-/**@brief Initializes GPS device and configures trigger if set.
- * Gets initial sample from GPS device.
- */
-static int gps_init(void)
-{
-	int err;
-	gps_dev = device_get_binding(CONFIG_GPS_DEV_NAME);
-
-	if (gps_dev == NULL) {
-		printk("Could not get %s device\n", CONFIG_GPS_DEV_NAME);
-		return;
-	}
-	printk("GPS device found\n");
-	
-
-	err = gps_sample_fetch(gps_dev);
-	__ASSERT(err == 0, "GPS sample could not be fetched.");
-
-	err = gps_channel_get(gps_dev, GPS_CHAN_NMEA, &gps_data);
-	__ASSERT(err == 0, "GPS sample could not be retrieved.");
-
-	return err;
-}
-
-/**@brief Configures modem to provide LTE link. Blocks until link is
- * successfully established.
- */
-static int modem_configure(void)
-{
-	int err;
-	if (IS_ENABLED(CONFIG_LTE_AUTO_INIT_AND_CONNECT)) {
-		/* Do nothing, modem is already turned on and connected. */
-	} else {
-		
-		printk("Establishing LTE link (this may take some time) ...\n");
-		err = lte_lc_init_and_connect();
-		__ASSERT(err == 0, "LTE link could not be established.");
-		return err;
-	}
-}
 
 /**@brief Initializes the peripherals that are used by the application. */
 static void sensors_init(void)
@@ -150,7 +98,11 @@ static void sensors_init(void)
 	int md = atomic_get(&MODEM_STATUS);
 	int gp = atomic_get(&GPS_STATUS);
 	
+	//Turns status LEDs on,
+	toggle_led_one(gp);
 	toggle_led_two(ut);
+	toggle_led_three(md);
+	
 	
 	while(ut){
 		ut = uart_init();
@@ -161,14 +113,14 @@ static void sensors_init(void)
 	
 
 	
-	toggle_led_three(md);
-	md = modem_configure();
+	
+	md = modem_init();
 	atomic_set(&MODEM_STATUS, md);
 	toggle_led_three(md);
 
-	toggle_led_one(gp);
-	gp = gps_init();
-	atomic_set(&MODEM_STATUS, gp);
+	
+	gp = gps_init(gps_data);
+	atomic_set(&GPS_STATUS, gp);
 	toggle_led_one(gp);
 }
 
