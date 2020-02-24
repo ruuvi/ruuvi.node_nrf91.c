@@ -34,42 +34,34 @@ struct adv_report_table adv_reports_buf;
 #define NRF_CMD1_LEN 3
 #define NRF_CMD2_LEN 1*/
 
-static u8_t uart_buf[1024];
+static u8_t uart_buf;
+static u8_t buf_cpy;
 
-/*
-static void uart_data_parse(u8_t uart_data){
+static void uart_data_parse(u8_t uart_buffer){
     
-	char* data;
-    char* rssi;
-	char* tag_mac;
-    memcmp(data, uart_data, sizeof(uart_data));
-    char* buffer[1025];
-    //char buf[512];
-    sprintf(buffer, "%s", uart_data);
-    
-    printk("%c", buffer);
-	//tag_mac = strtok((char*)uart_data, ",");
-    /*
-	data = strtok(NULL, ",");
-    puts(data);
-    rssi = strtok(NULL, ",");
-    puts(rssi);
-	
-    //(tag_mac);
-}*/
+    char* token;
+    char string[512];
+
+    sprintf(string, "%c", uart_buffer);
+    for (token = strtok(string, ", \0"); token; token = strtok(NULL, ", \0"))
+    {
+        //printf("%s", token);
+    }
+}
 
 
 static void uart_fifo_callback(struct device *dev)
 {
+    
     uart_irq_update(dev);
-	int data_length = 0;
-
+    
 	if (uart_irq_rx_ready(dev)) {
-		data_length = uart_fifo_read(dev, uart_buf, sizeof(uart_buf));
-		uart_buf[data_length] = 0;
-	}
-	printk("%s", uart_buf);    
-    //uart_data_parse(uart_buf);
+		uart_fifo_read(dev, &uart_buf, 1);
+    }
+    buf_cpy = uart_buf;
+    uart_data_parse(buf_cpy);
+
+    
 }
 
 void uart_driver_write(char *data)      
