@@ -22,8 +22,6 @@ static struct device *uart_dev;
 //extern struct k_msgq ble_queue;
 //K_MSGQ_DEFINE(ble_queue, sizeof(u8_t), 256, 1);
 
-struct adv_report_table adv_reports;
-struct adv_report_table adv_reports_buf;
 #define UART_RX_BUF_SIZE 1024
 /*
 // Define TX Parameters

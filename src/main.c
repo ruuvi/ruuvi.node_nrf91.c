@@ -14,6 +14,9 @@
 #include "gps_controller.h"
 #include "ruuvinode.h"
 
+#include <logging/log.h>
+LOG_MODULE_REGISTER(ruuvi_node, CONFIG_RUUVI_NODE_LOG_LEVEL);
+
 /* size of stack area used by each thread */
 #define STACKSIZE 1024
 
@@ -35,8 +38,10 @@ static struct modem_param_info modem_param;
 static struct gps_data gps_data;
 static u16_t gps_readings = 0;
 
+K_SEM_DEFINE(gps_timeout_sem, 0, 1);
+
 /** @brief Thread that will call gps updates. Could be removed and updates called when traffic is about to be sent. */
-void gpsT(void){
+/*void gpsT(void){
 	while (1){
 		if(!atomic_get(&GPS_STATUS)){
 			while(!atomic_get(&GPS_STATUS)){
@@ -55,7 +60,7 @@ void gpsT(void){
 			k_sleep(SLEEP_TIME);
 		}
 	}	
-}
+}*/
 
 /** @brief May be removed in future. UART callback currently processing the data */
 void uartT(void){
@@ -87,12 +92,176 @@ void sendT(void){
 	}
 }
 
-K_THREAD_DEFINE(gps, STACKSIZE, gpsT, NULL, NULL, NULL, PRIORITY, 0, K_NO_WAIT);
+//K_THREAD_DEFINE(gps, STACKSIZE, gpsT, NULL, NULL, NULL, PRIORITY, 0, K_NO_WAIT);
 
 K_THREAD_DEFINE(uart, STACKSIZE, uartT, NULL, NULL, NULL,	PRIORITY, 0, K_NO_WAIT);
 
 K_THREAD_DEFINE(send, STACKSIZE, sendT, NULL, NULL, NULL,	PRIORITY, 0, K_NO_WAIT);
 
+static void gps_trigger_handler(struct device *dev, struct gps_trigger *trigger)
+{
+	static u32_t fix_count;
+
+		ARG_UNUSED(trigger);
+
+	if (++fix_count < CONFIG_GPS_CONTROL_FIX_COUNT) {
+		return;
+	}
+
+	fix_count = 0;
+
+	printk("gps control handler triggered!");
+	gps_sample_fetch(dev);
+	gps_channel_get(dev, GPS_CHAN_PVT, &gps_data);
+	printf("Longitude: %f\n", gps_data.pvt.longitude);
+	printf("Longitude: %f\n", gps_data.pvt.latitude);
+	printk("Trigger: GPS\n");
+	k_sem_give(&gps_timeout_sem);
+}
+
+//static int post_data(void){
+
+//}
+
+static int modem_data_get(void)
+{
+	int err;
+
+	err = modem_info_params_get(&modem_param);
+	if (err) {
+		LOG_ERR("Error getting modem_info: %d", err);
+		return err;
+	}
+
+	return 0;
+}
+
+static int modem_data_init(void)
+{
+	int err;
+
+	err = modem_info_init();
+	if (err) {
+		LOG_ERR("modem_info_init, error: %d", err);
+		return err;
+	}
+
+	err = modem_info_params_init(&modem_param);
+	if (err) {
+		LOG_ERR("modem_info_params_init, error: %d", err);
+		return err;
+	}
+
+	/*err = modem_info_rsrp_register(modem_rsrp_handler);
+	if (err) {
+		printk("modem_info_rsrp_register, error: %d", err);
+		return err;
+	}*/
+
+	return 0;
+}
+
+enum lte_conn_actions {
+	LTE_INIT,
+	CHECK_LTE_CONNECTION,
+};
+
+static int lte_connect(enum lte_conn_actions action)
+{
+	int err;
+
+	enum lte_lc_nw_reg_status nw_reg_status;
+
+
+	if (action == LTE_INIT) {
+		if (IS_ENABLED(CONFIG_LTE_AUTO_INIT_AND_CONNECT)) {
+			/* Do nothing, modem is already turned on
+			 * and connected.
+			 */
+		} else {
+			LOG_INF("Connecting to LTE network. ");
+			LOG_INF("This may take several minutes.");
+			err = lte_lc_init_and_connect();
+			if (err == -ETIMEDOUT) {
+				goto exit;
+			} else if (err) {
+				return err;
+			}
+		}
+	} else if (action == CHECK_LTE_CONNECTION) {
+		err = lte_lc_nw_reg_status_get(&nw_reg_status);
+		if (err) {
+			LOG_ERR("lte_lc_nw_reg_status error: %d", err);
+			//error_handler(err);
+		}
+
+		LOG_INF("Checking LTE connection...");
+
+		switch (nw_reg_status) {
+		case LTE_LC_NW_REG_REGISTERED_HOME:
+		case LTE_LC_NW_REG_REGISTERED_ROAMING:
+			break;
+		default:
+			goto exit;
+		}
+	}
+
+	LOG_INF("Connected to LTE network");
+
+	//k_sem_give(&cloud_conn_sem);
+
+	return 0;
+
+exit:
+
+	LOG_ERR("LTE link could not be established, or maintained");
+
+	//k_sem_take(&cloud_conn_sem, K_NO_WAIT);
+
+	return 0;
+}
+
+static void test_data(void){
+	struct ble_report tag[20];
+	struct gps_report gpsLatest;
+	struct report sendData;
+	char* macT[] = {"000001000001", "000001000002", "000001000003"};
+	int rssiT[3] = {-51, -52, -53};
+	char* advDataT[] = {"02010699040501", "02010699040502", "02010699040503"};
+	double latT = -65.300;
+	double longT = 115.215;
+	char* imeiT = "111000001000001";
+
+
+	gpsLatest.timestamp = k_cycle_get_32();
+	gpsLatest.latitude = latT;
+	gpsLatest.longitude = longT;
+
+	strcpy(tag[0].tag_mac, macT[0]);
+	tag[0].rssi = rssiT[0];
+	tag[0].timestamp = k_cycle_get_32();
+	strcpy(tag[0].data, advDataT[0]);
+
+	strcpy(tag[1].tag_mac, macT[1]);
+	tag[1].rssi = rssiT[1];
+	tag[1].timestamp = k_cycle_get_32();
+	strcpy(tag[1].data, advDataT[1]);
+
+	strcpy(tag[2].tag_mac, macT[2]);
+	tag[2].rssi = rssiT[2];
+	tag[2].timestamp = k_cycle_get_32();
+	strcpy(tag[2].data, advDataT[2]);
+
+	strcpy(sendData.imei, imeiT);
+	sendData.timestamp = k_cycle_get_32();
+	sendData.latest_gps = gpsLatest;
+	sendData.latest_ble[0] = tag[0];
+	sendData.latest_ble[1] = tag[1];
+	sendData.latest_ble[1] = tag[1];
+
+	printk("%s", sendData.latest_ble[0].tag_mac);
+	printk("%d", sendData.latest_ble[1].rssi);
+}
 
 /** @brief Initialises the peripherals that are used by the application. */
 static void sensors_init(void)
@@ -118,25 +287,60 @@ static void sensors_init(void)
 	toggle_led_two(ut);
 	atomic_set(&UART_STATUS, ut);
 	
-	//Modem
-	md = modem_init();
-	atomic_set(&MODEM_STATUS, md);
-	toggle_led_three(md);
-
 	//GPS
-	gp = gps_init(gps_data);
-	atomic_set(&GPS_STATUS, gp);
-	toggle_led_one(gp);
+	//gp = gps_init(gps_data);
+	//atomic_set(&GPS_STATUS, gp);
+	//toggle_led_one(gp);
+	int err;
+
+	err = gps_control_init(gps_trigger_handler);
+	if (err) {
+		LOG_ERR("gps_control_init, error %d", err);
+		
+	}
+
+	
+
+	//Modem Data
+	err = modem_data_init();
+	if (err) {
+		LOG_ERR("modem_data_init, error: %d", err);
+		//error_handler(err);
+	}
+
+	//Modem
+	//md = modem_init();
+	//atomic_set(&MODEM_STATUS, md);
+	//toggle_led_three(md);
+
+	err = lte_connect(LTE_INIT);
+	if (err) {
+		LOG_ERR("lte_connect, error: %d", err);
+		//error_handler(err);
+	}
+	
 }
 
 void main(void)
 {
-	printk("Application started\n");
+	LOG_INF("Application started\n");
 	// Initilise the peripherals
 	sensors_init();
+	test_data();
 	
 	while(1){
 		flash_led_four();
-		k_sleep(SLEEP_TIME);
+		/*Start GPS search*/
+		printk("Start GPS");
+		gps_control_start(K_NO_WAIT);
+
+		/*Wait for GPS search timeout*/
+		k_sem_take(&gps_timeout_sem, K_SECONDS(60));
+
+		k_sleep(SLEEP_TIME*10);
+
+		/*Stop GPS search*/
+		printk("Stop GPS");
+		gps_control_stop(K_NO_WAIT);
 	}
 }

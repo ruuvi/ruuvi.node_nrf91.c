@@ -11,19 +11,28 @@
 #define ADV_POST_INTERVAL 10000
 #define MAX_ADVS_TABLE 20
 
-typedef struct adv_report {
+struct ble_report {
 	char tag_mac[MAC_LEN+1];
 	uint32_t timestamp;
 	int rssi;
 	char data[ADV_DATA_MAX_LEN+1];
-} adv_report_t;
-
-struct adv_report_table {
-	int num_of_advs;
-	adv_report_t table[MAX_ADVS_TABLE];
 };
 
+struct gps_report {
+	uint32_t timestamp;
+	double latitude;
+	double longitude;
+};
 
+struct report {
+	char imei[16];
+	uint32_t timestamp;
+	union{
+		struct gps_report latest_gps;
+		struct ble_report latest_ble[20];
+	};
+}
+;
 typedef enum nrf_command_t {
 	SET_FILTER,
 	CLEAR_FILTER

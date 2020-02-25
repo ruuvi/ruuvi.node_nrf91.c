@@ -7,7 +7,7 @@ set(BOARD_ROOT ${CMAKE_CURRENT_LIST_DIR})
 # This sample is only compatible with ruuvi_node because it has
 # re-directed the 'boards' directory to a directory that only contains
 # this board.
-set(BOARD nrf9160_pca10090)
+set(BOARD nrf9160_pca10090ns)
 
 include($ENV{ZEPHYR_BASE}/cmake/app/boilerplate.cmake NO_POLICY_SCOPE)
 project(ruuvi_node)
