@@ -18,7 +18,7 @@
     "NordicSemiconductor"
   ],
   "author": "Nordic Semiconductor ASA | nordicsemi.no, Ruuvi Innovations Ltd | ruuvi.com",
-  "license": "BSD-5-Clause-Nordic",
+  "license": "BSD-3-Clause",
   "devDependencies": {
     "@commitlint/cli": "^8.3.5",
     "@commitlint/config-angular": "^8.3.4",
