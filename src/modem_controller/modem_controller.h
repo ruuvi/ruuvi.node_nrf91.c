@@ -1,3 +1,9 @@
 #include <zephyr.h>
+#include <modem_info.h>
 
-int modem_init(void);
+enum modem_actions {
+	LTE_INIT,
+	CHECK_LTE_CONNECTION
+};
+
+int lte_connect(enum modem_actions action);
