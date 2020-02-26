@@ -111,7 +111,7 @@ K_THREAD_DEFINE(uart, STACKSIZE, uartT, NULL, NULL, NULL,	PRIORITY, 0, K_NO_WAIT
 
 //K_THREAD_DEFINE(send, STACKSIZE, sendT, NULL, NULL, NULL,	PRIORITY, 0, K_NO_WAIT);
 
-static void gps_trigger_handler(struct device *dev, struct gps_trigger *trigger)
+/*static void gps_trigger_handler(struct device *dev, struct gps_trigger *trigger)
 {
 	static u32_t fix_count;
 
@@ -130,7 +130,7 @@ static void gps_trigger_handler(struct device *dev, struct gps_trigger *trigger)
 	printf("Longitude: %f\n", gps_data.pvt.latitude);
 	printk("Trigger: GPS\n");
 	k_sem_give(&gps_timeout_sem);
-}
+}*/
 
 static void test_data(void){
 	struct ble_report tag[20];
@@ -179,15 +179,15 @@ static void sensors_init(void)
 {
 	atomic_set(&UART_STATUS, 1);
 	atomic_set(&MODEM_STATUS, 1);
-	atomic_set(&GPS_STATUS, 1);
+	//atomic_set(&GPS_STATUS, 1);
 
 	led_init();
 	int ut = atomic_get(&UART_STATUS);
 	int md = atomic_get(&MODEM_STATUS);
-	int gp = atomic_get(&GPS_STATUS);
+	//int gp = atomic_get(&GPS_STATUS);
 	
 	//Turns status LEDs on,
-	toggle_led_one(gp);
+	//toggle_led_one(gp);
 	toggle_led_two(ut);
 	toggle_led_three(md);
 	
@@ -197,7 +197,7 @@ static void sensors_init(void)
 	}
 	toggle_led_two(ut);
 	atomic_set(&UART_STATUS, ut);
-	
+	/*
 	//GPS
 	gp = gps_control_init(gps_trigger_handler);
 	if (gp) {
@@ -206,7 +206,7 @@ static void sensors_init(void)
 	else{
 		atomic_set(&GPS_STATUS, gp);
 		toggle_led_one(gp);
-	}
+	}*/
 
 	//Modem Data
 	int err;
@@ -235,24 +235,23 @@ void main(void)
 	sensors_init();
 	test_data();
 	k_sleep(SLEEP_TIME*5);
-	open_http_socket();
+	open_post_socket();
 	while(1){
 		flash_led_four();
 
 		/*Start GPS search*/
 		LOG_INF("Start GPS");
-		gps_control_start(K_NO_WAIT);
+		//gps_control_start(K_NO_WAIT);
 
 		/*Wait for GPS search timeout*/
-		k_sem_take(&gps_timeout_sem, K_SECONDS(60));
+		//k_sem_take(&gps_timeout_sem, K_SECONDS(60));
 
-		//k_sleep(SLEEP_TIME*10);
+		k_sleep(SLEEP_TIME*10);
 
 		/*Stop GPS search*/
 		LOG_INF("Stop GPS");
-		gps_control_stop(K_NO_WAIT);
+		//gps_control_stop(K_NO_WAIT);
 		
-		//post_data();
-		http_post();
+		post_message();
 	}
 }
