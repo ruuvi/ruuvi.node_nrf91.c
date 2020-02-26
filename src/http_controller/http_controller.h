@@ -1,8 +1,8 @@
 //HTTP
 #define HTTP_HOST "ptsv2.com" 
 #define HTTP_PATH "/t/ruuvi-node/post"
-#define HTTPS_HOST "hookb.in" 
-#define HTTPS_PATH "/03oRJZZNWeTR7zmw0Gel"
+#define HTTPS_HOST "webhook.site" 
+#define HTTPS_PATH "/9856892b-7ab0-42dd-891a-e5d402c5ab9c"
 
 #define HTTP_PORT 80
 #define HTTPS_PORT 443
@@ -13,6 +13,7 @@
 #define HTTPS_MODE 1 //0 for http, 1 for https
 
 #define TEST_STRING	"Hello from Ruuvi Node"
+#define START_STRING "Ruuvi Node Online"
 
 
 #define POST_TEMPLATE "POST %s? HTTP/1.1\r\n"\

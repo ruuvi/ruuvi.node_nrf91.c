@@ -234,7 +234,6 @@ void main(void)
 	// Initilise the peripherals
 	sensors_init();
 	test_data();
-	k_sleep(SLEEP_TIME*5);
 	open_post_socket();
 	while(1){
 		flash_led_four();
@@ -246,7 +245,7 @@ void main(void)
 		/*Wait for GPS search timeout*/
 		//k_sem_take(&gps_timeout_sem, K_SECONDS(60));
 
-		k_sleep(SLEEP_TIME*10);
+		k_sleep(SLEEP_TIME);
 
 		/*Stop GPS search*/
 		LOG_INF("Stop GPS");

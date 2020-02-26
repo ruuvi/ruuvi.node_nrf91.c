@@ -110,7 +110,7 @@ void open_https_socket(void){
 	((struct sockaddr_in *)res->ai_addr)->sin_port = htons(HTTPS_PORT);
 
 
-	int client_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TLS_1_2);
+	client_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TLS_1_2);
 
 	enum {
 		NONE = 0,
@@ -190,9 +190,26 @@ void https_post(void){
                             HTTPS_HOST, strlen(TEST_STRING),
                             TEST_STRING);
 
-	num_bytes = send(client_fd, send_buf, send_data_len, 0);
+    num_bytes = send(client_fd, send_buf, send_data_len, 0);
 	if (num_bytes < 0) {
 		printk("send errno: %d\n", errno);
 		close_https_socket();
 	}
+
+    // Not need to only post
+	/*int tot_num_bytes = 0;
+
+	do {
+		/* TODO: make a proper timeout *
+		 * Current solution will just hang 
+		 * until remote side closes connection 
+		num_bytes = recv(client_fd, recv_buf, RECV_BUF_SIZE, 0);
+		tot_num_bytes += num_bytes;
+
+		if (num_bytes <= 0) {
+			printk("\nrecv errno: %d\n", errno);
+			break;
+		}
+		printk("%s", recv_buf);
+	} while (num_bytes > 0);*/
 }
