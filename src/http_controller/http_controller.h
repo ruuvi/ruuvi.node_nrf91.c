@@ -2,7 +2,7 @@
 #define HTTP_HOST "ptsv2.com" 
 #define HTTP_PATH "/t/ruuvi-node/post"
 #define HTTPS_HOST "webhook.site" 
-#define HTTPS_PATH "/9856892b-7ab0-42dd-891a-e5d402c5ab9c"
+#define HTTPS_PATH "/06149a93-d592-431a-943b-9b3a97c0d065"
 
 #define HTTP_PORT 80
 #define HTTPS_PORT 443
@@ -10,7 +10,7 @@
 #define RECV_BUF_SIZE    4096
 #define SEND_BUF_SIZE    MAX_MTU_SIZE
 
-#define HTTPS_MODE 1 //0 for http, 1 for https
+#define HTTPS_MODE 0 //0 for http, 1 for https
 
 #define TEST_STRING	"Hello from Ruuvi Node"
 #define START_STRING "Ruuvi Node Online"
@@ -23,12 +23,14 @@
                       "Content-length: %d\r\n\r\n"\
                       "%s"
 
-void http_post(void);
-void https_post(void);
-void post_message(void);
+int post_message(void);
+int http_post(void);
+int https_post(void);
 
-void open_post_socket(void);
-void open_http_socket(void);
-void open_https_socket(void);
+int open_post_socket(void);
+int open_http_socket(void);
+int open_https_socket(void);
+
+void close_post_socket(void);
 void close_http_socket(void);
 void close_https_socket(void);

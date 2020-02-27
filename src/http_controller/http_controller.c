@@ -8,7 +8,6 @@
 static struct sockaddr_in local_addr;
 static struct addrinfo *res;
 static int send_data_len;
-static int num_bytes;
 static int mtu_size = MAX_MTU_SIZE;
 static char send_buf[SEND_BUF_SIZE];
 static int client_fd;
@@ -50,45 +49,37 @@ int blocking_connect(int fd, struct sockaddr *local_addr, socklen_t len)
 	return err;
 }
 
-void open_post_socket(void){
-    if(HTTPS_MODE){
-        open_https_socket();
-    }
-    else{
-        open_http_socket();
-    }
-}
-
-void open_http_socket(void){
+int open_http_socket(void){
     
-        local_addr.sin_family = AF_INET;
-        local_addr.sin_port = htons(0);
-        local_addr.sin_addr.s_addr = 0;
-        printk("HTTP Socket\n\r");
+    local_addr.sin_family = AF_INET;
+    local_addr.sin_port = htons(0);
+    local_addr.sin_addr.s_addr = 0;
+    printk("\n\rOpen HTTP Socket\n\r");
 
-        int err = getaddrinfo(HTTP_HOST, NULL, NULL, &res);
-        if(err){
-            printk("getaddrinfo err: %d\n\r", err);
-        }
+    int err = getaddrinfo(HTTP_HOST, NULL, NULL, &res);
+    if(err){
+        printk("getaddrinfo err: %d\n\r", err);
+    }
 
-        ((struct sockaddr_in *)res->ai_addr)->sin_port = htons(HTTP_PORT);
-        
-        client_fd = socket(AF_INET, SOCK_STREAM, 0);
+    ((struct sockaddr_in *)res->ai_addr)->sin_port = htons(HTTP_PORT);
+    
+    client_fd = socket(AF_INET, SOCK_STREAM, 0);
 
-        printk("client_fd: %d\n\r", client_fd);
-        err = bind(client_fd, (struct sockaddr *)&local_addr,
-                    sizeof(local_addr));
-        if (err){
-            printk("bind err: %d\n\r", err);
-        }
-        err = blocking_connect(client_fd, (struct sockaddr *)res->ai_addr,
-                    sizeof(struct sockaddr_in));
-        if (err){
-            printk("connect err: %d\n\r", err);
-        }
+    err = bind(client_fd, (struct sockaddr *)&local_addr,
+                sizeof(local_addr));
+    if (err){
+        printk("bind err: %d\n\r", err);
+    }
+    err = blocking_connect(client_fd, (struct sockaddr *)res->ai_addr,
+                sizeof(struct sockaddr_in));
+    if (err){
+        printk("connect err: %d\n\r", err);
+    }
+    return err;
 }
 
-void open_https_socket(void){
+int open_https_socket(void){
+    int err;
     hints.ai_flags = 0;
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
@@ -98,42 +89,56 @@ void open_https_socket(void){
 	local_addr.sin_port = htons(HTTPS_PORT);
 	local_addr.sin_addr.s_addr = 0;
 
-	printk("HTTPS Socket\n\r");
+	printk("\n\rOpening HTTPS Socket\n\r");
 
-	int err = getaddrinfo(HTTPS_HOST, NULL, &hints, &res);
-	if (err) {
-		printk("getaddrinfo errno %d\n", errno);
-		/* No clean up needed, just return */
-		return;
-	}
+    err = getaddrinfo(HTTPS_HOST, NULL, &hints, &res);
+    if (err) {
+        printk("getaddrinfo errno %d\n", errno);
+        /* No clean up needed, just return */
+        return err;
+    }
 
-	((struct sockaddr_in *)res->ai_addr)->sin_port = htons(HTTPS_PORT);
+    ((struct sockaddr_in *)res->ai_addr)->sin_port = htons(HTTPS_PORT);
 
 
-	client_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TLS_1_2);
+    client_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TLS_1_2);
 
-	enum {
-		NONE = 0,
-		OPTIONAL = 1,
-		REQUIRED = 2,
-	};
+    enum {
+        NONE = 0,
+        OPTIONAL = 1,
+        REQUIRED = 2,
+    };
 
-	int verify = OPTIONAL;
+    int verify = OPTIONAL;
 
-	err = setsockopt(client_fd, SOL_TLS, TLS_PEER_VERIFY, &verify,
-			 sizeof(verify));
-	if (err) {
-		printk("setsockopt err: %d\n", errno);
-	}
+    err = setsockopt(client_fd, SOL_TLS, TLS_PEER_VERIFY, &verify,
+            sizeof(verify));
+    if (err) {
+        printk("setsockopt err: %d\n", errno);
+    }
 
+    
 	err = connect(client_fd, (struct sockaddr *)res->ai_addr,
 		      sizeof(struct sockaddr_in));
 	if (err > 0) {
 		printk("connect err: %d\n", errno);
 		close_https_socket();
 	}
+
+    return err;
 }
 
+int open_post_socket(void){
+    int err;
+    if(HTTPS_MODE){
+        err = open_https_socket();
+        return err;
+    }
+    else{
+        err =open_http_socket();
+        return err;
+    }
+}
 
 void close_http_socket(void){
     printk("\n\rFinished. Closing socket\n");
@@ -150,40 +155,40 @@ void close_https_socket(void){
     if (err){
         printk("closing err: %d\n\r", err);
     }	
-
 }
 
-void post_message(void){
+void close_post_socket(void){
     if(HTTPS_MODE){
-        https_post();
+        close_https_socket();
     }
     else{
-        http_post();
+        close_http_socket();
     }
 }
 
-void http_post(void){
-    printk("\n\rPrepare send buffer:\n\r");
+int http_post(void){
+    int num_bytes;
     send_data_len = snprintf(send_buf,
                             mtu_size,
                             POST_TEMPLATE, HTTP_PATH,
                             HTTP_HOST, strlen(TEST_STRING),
                             TEST_STRING);
 
-
-    printk("\n\rSend HTTP post request.\n\r");
     do {
         num_bytes =
         blocking_send(client_fd, send_buf, send_data_len, 0);
         
         if (num_bytes < 0) {
             printk("ret: %d, errno: %s\n", num_bytes, strerror(errno));
+            return 1;
         };
 
     } while (num_bytes < 0);
+    return 0;
 }
 
-void https_post(void){
+int https_post(void){
+    int num_bytes;
     send_data_len = snprintf(send_buf,
                             mtu_size,
                             POST_TEMPLATE, HTTPS_PATH,
@@ -194,22 +199,19 @@ void https_post(void){
 	if (num_bytes < 0) {
 		printk("send errno: %d\n", errno);
 		close_https_socket();
+        return 1;
 	}
+    return 0;
+}
 
-    // Not need to only post
-	/*int tot_num_bytes = 0;
-
-	do {
-		/* TODO: make a proper timeout *
-		 * Current solution will just hang 
-		 * until remote side closes connection 
-		num_bytes = recv(client_fd, recv_buf, RECV_BUF_SIZE, 0);
-		tot_num_bytes += num_bytes;
-
-		if (num_bytes <= 0) {
-			printk("\nrecv errno: %d\n", errno);
-			break;
-		}
-		printk("%s", recv_buf);
-	} while (num_bytes > 0);*/
+int post_message(void){
+    int err;
+    if(HTTPS_MODE){
+        err = https_post();
+        return err;
+    }
+    else{
+        err = http_post();
+        return err;
+    }
 }

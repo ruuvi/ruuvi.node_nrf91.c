@@ -18,8 +18,8 @@ int lte_connect(enum modem_actions action)
 			 * and connected.
 			 */
 		} else {
-			printk("Connecting to LTE network. ");
-			printk("This may take several minutes.");
+			printk("\n\rConnecting to LTE network. \n\r");
+			printk("\n\rThis may take several minutes.\n\r");
 			err = lte_lc_init_and_connect();
 			if (err == -ETIMEDOUT) {
 				goto exit;

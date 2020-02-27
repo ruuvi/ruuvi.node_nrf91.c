@@ -8,8 +8,11 @@
 #define ADV_DATA_MAX_LEN 64
 
 #define GPS_UPDATE_INTERVAL 60000
-#define ADV_POST_INTERVAL 10000
+#define ADV_POST_INTERVAL 5000		//Change to 10000 later
 #define MAX_ADVS_TABLE 20
+
+//Used to disable GPS to speed up testing
+#define USE_GPS 0
 
 struct ble_report {
 	char tag_mac[MAC_LEN+1];

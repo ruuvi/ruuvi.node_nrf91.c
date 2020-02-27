@@ -12,8 +12,6 @@
 #include "http_controller.h"
 #include "ruuvinode.h"
 
-
-
 #include <logging/log.h>
 LOG_MODULE_REGISTER(ruuvi_node, CONFIG_RUUVI_NODE_LOG_LEVEL);
 
@@ -24,18 +22,15 @@ LOG_MODULE_REGISTER(ruuvi_node, CONFIG_RUUVI_NODE_LOG_LEVEL);
 #define PRIORITY 7
 #define SLEEP_TIME	1000
 
-
-
-
+// Status information
 static atomic_val_t UART_STATUS;
 static atomic_val_t MODEM_STATUS;
 static atomic_val_t GPS_STATUS;
 
-
-static struct modem_param_info modem_param;
-
 /* Sensor data */
 static struct gps_data gps_data;
+static struct modem_param_info modem_param;
+
 K_SEM_DEFINE(gps_timeout_sem, 0, 1);
 
 int modem_data_get(void)
@@ -92,11 +87,18 @@ void uartT(void){
 }
 
 /** @brief Thread that will control the sending of traffic */
-/*void sendT(void){
+void sendT(void){
+	int cnt = 0;
 	while(1){
 		if(!atomic_get(&MODEM_STATUS)){
+			//Open HTTP/S socket
+			open_post_socket();
 			while (!atomic_get(&MODEM_STATUS)){
 				flash_led_three();
+				
+				post_message();
+				++cnt;
+				LOG_INF("sendT: HTTP POST MESSAGE %d", cnt);
 				k_sleep(ADV_POST_INTERVAL);
 			}
 		}
@@ -104,14 +106,14 @@ void uartT(void){
 			k_sleep(SLEEP_TIME);
 		}
 	}
-}*/
+}
 
 
-K_THREAD_DEFINE(uart, STACKSIZE, uartT, NULL, NULL, NULL,	PRIORITY, 0, K_NO_WAIT);
+K_THREAD_DEFINE(uartThread, STACKSIZE, uartT, NULL, NULL, NULL,	PRIORITY, 0, K_NO_WAIT);
 
-//K_THREAD_DEFINE(send, STACKSIZE, sendT, NULL, NULL, NULL,	PRIORITY, 0, K_NO_WAIT);
+K_THREAD_DEFINE(sendThread, STACKSIZE, sendT, NULL, NULL, NULL,	PRIORITY, 0, K_NO_WAIT);
 
-/*static void gps_trigger_handler(struct device *dev, struct gps_trigger *trigger)
+static void gps_trigger_handler(struct device *dev, struct gps_trigger *trigger)
 {
 	static u32_t fix_count;
 
@@ -130,7 +132,7 @@ K_THREAD_DEFINE(uart, STACKSIZE, uartT, NULL, NULL, NULL,	PRIORITY, 0, K_NO_WAIT
 	printf("Longitude: %f\n", gps_data.pvt.latitude);
 	printk("Trigger: GPS\n");
 	k_sem_give(&gps_timeout_sem);
-}*/
+}
 
 static void test_data(void){
 	struct ble_report tag[20];
@@ -170,8 +172,8 @@ static void test_data(void){
 	sendData.latest_ble[1] = tag[1];
 	sendData.latest_ble[1] = tag[1];
 
-	printk("%s", sendData.latest_ble[0].tag_mac);
-	printk("%d", sendData.latest_ble[1].rssi);
+	//printk("%s", sendData.latest_ble[0].tag_mac);
+	//printk("%d", sendData.latest_ble[1].rssi);
 }
 
 /** @brief Initialises the peripherals that are used by the application. */
@@ -179,15 +181,15 @@ static void sensors_init(void)
 {
 	atomic_set(&UART_STATUS, 1);
 	atomic_set(&MODEM_STATUS, 1);
-	//atomic_set(&GPS_STATUS, 1);
+	atomic_set(&GPS_STATUS, 1);
 
 	led_init();
 	int ut = atomic_get(&UART_STATUS);
 	int md = atomic_get(&MODEM_STATUS);
-	//int gp = atomic_get(&GPS_STATUS);
+	int gp = atomic_get(&GPS_STATUS);
 	
 	//Turns status LEDs on,
-	//toggle_led_one(gp);
+	toggle_led_one(gp);
 	toggle_led_two(ut);
 	toggle_led_three(md);
 	
@@ -197,17 +199,19 @@ static void sensors_init(void)
 	}
 	toggle_led_two(ut);
 	atomic_set(&UART_STATUS, ut);
-	/*
+	
 	//GPS
-	gp = gps_control_init(gps_trigger_handler);
-	if (gp) {
-		LOG_ERR("gps_control_init, error %d", gp);
+	if(USE_GPS){
+		gp = gps_control_init(gps_trigger_handler);
+		if (gp) {
+			LOG_ERR("gps_control_init, error %d", gp);
+		}
+		else{
+			atomic_set(&GPS_STATUS, gp);
+			toggle_led_one(gp);
+		}
 	}
-	else{
-		atomic_set(&GPS_STATUS, gp);
-		toggle_led_one(gp);
-	}*/
-
+	
 	//Modem Data
 	int err;
 	err = modem_data_init();
@@ -234,23 +238,23 @@ void main(void)
 	// Initilise the peripherals
 	sensors_init();
 	test_data();
-	open_post_socket();
+	
+
 	while(1){
 		flash_led_four();
+		if(USE_GPS){
+			/*Start GPS search*/
+			LOG_INF("Start GPS");
+			gps_control_start(K_NO_WAIT);
 
-		/*Start GPS search*/
-		LOG_INF("Start GPS");
-		//gps_control_start(K_NO_WAIT);
+			/*Wait for GPS search timeout*/
+			k_sem_take(&gps_timeout_sem, K_SECONDS(SLEEP_TIME));
 
-		/*Wait for GPS search timeout*/
-		//k_sem_take(&gps_timeout_sem, K_SECONDS(60));
-
-		k_sleep(SLEEP_TIME);
-
-		/*Stop GPS search*/
-		LOG_INF("Stop GPS");
-		//gps_control_stop(K_NO_WAIT);
+			/*Stop GPS search*/
+			LOG_INF("Stop GPS");
+			gps_control_stop(K_NO_WAIT);
+		}
+		k_sleep(GPS_UPDATE_INTERVAL);
 		
-		post_message();
 	}
 }
