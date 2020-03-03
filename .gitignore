@@ -1,8 +1,9 @@
 # Prerequisites
 *.dkms
 
-#build Folder
+#build Folders
 build/
+build*/
 
 # Object files
 *.o
