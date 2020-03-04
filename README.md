@@ -6,11 +6,13 @@ Nordic Semiconductor keeps up-to-date instructions on how to setup the toolchain
 Linux, Mac OSX and Windows. Download [nRF Connect for Desktop](https://www.nordicsemi.com/Software-and-tools/Development-Tools/nRF-Connect-for-desktop) and follow getting started -plugin instructions. 
 
 # Cloning and building
+```bash
 mkdir ruuvi_node_sdk && cd ruuvi_node_sdk
 west init -m https://github.com/ruuvi/ruuvi.node_nrf91.c
 west update
 cd ruuvi_node
 west build
+```
 
 # Licenses
 Ruuvi code is BSD-3 licensed. 
