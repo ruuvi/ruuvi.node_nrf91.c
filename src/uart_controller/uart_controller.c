@@ -7,9 +7,10 @@
 #include <drivers/uart.h>
 #include <ctype.h>
 
-
+#include "data_parser.h"
 #include "uart_controller.h"
 #include "ruuvinode.h"
+
 
 #define SLEEP_TIME	10000
 
@@ -34,6 +35,12 @@ static struct device *uart_dev;
 
 static u8_t uart_buf;
 static u8_t buf_cpy;
+
+struct ble_report tag[20];
+struct ble_report tag_buf[20];
+int tag_count;
+int tag_count_buf;
+int ttc = 0;
 
 static void uart_data_parse(u8_t uart_buffer){
     
@@ -72,12 +79,89 @@ void uart_driver_write(char *data)
     }
 }
 
+
+static void test_data(void){
+	if(ttc == 0){
+        char* macT[] = {"100001000001", "100001000002", "100001000003"};
+        int rssiT[3] = {-51, -52, -53};
+        char* advDataT[] = {"02010699040501", "02010699040502", "02010699040503"};
+
+        strcpy(tag[tag_count].tag_mac, macT[tag_count]);
+        tag[tag_count].rssi = rssiT[tag_count];
+        tag[tag_count].timestamp = k_cycle_get_32();
+        strcpy(tag[tag_count].data, advDataT[tag_count]);
+        ++tag_count;
+
+        strcpy(tag[tag_count].tag_mac, macT[tag_count]);
+        tag[tag_count].rssi = rssiT[tag_count];
+        tag[tag_count].timestamp = k_cycle_get_32();
+        strcpy(tag[tag_count].data, advDataT[tag_count]);
+        ++tag_count;
+
+        strcpy(tag[tag_count].tag_mac, macT[tag_count]);
+        tag[tag_count].rssi = rssiT[tag_count];
+        tag[tag_count].timestamp = k_cycle_get_32();
+        strcpy(tag[tag_count].data, advDataT[tag_count]);
+        ++tag_count;
+        ttc++;
+    }
+    else{
+        char* macT[] = {"200001000001", "200001000002", "200001000003", "200001000004", "200001000005", "200001000006"};
+        int rssiT[6] = {-61, -62, -63, -61, -62, -63};
+        char* advDataT[] = {"02010699040501", "02010699040502", "02010699040503", "02010699040501", "02010699040502", "02010699040503"};
+
+        strcpy(tag[tag_count].tag_mac, macT[tag_count]);
+        tag[tag_count].rssi = rssiT[tag_count];
+        tag[tag_count].timestamp = k_cycle_get_32();
+        strcpy(tag[tag_count].data, advDataT[tag_count]);
+        ++tag_count;
+
+        strcpy(tag[tag_count].tag_mac, macT[tag_count]);
+        tag[tag_count].rssi = rssiT[tag_count];
+        tag[tag_count].timestamp = k_cycle_get_32();
+        strcpy(tag[tag_count].data, advDataT[tag_count]);
+        ++tag_count;
+
+        strcpy(tag[tag_count].tag_mac, macT[tag_count]);
+        tag[tag_count].rssi = rssiT[tag_count];
+        tag[tag_count].timestamp = k_cycle_get_32();
+        strcpy(tag[tag_count].data, advDataT[tag_count]);
+        ++tag_count;
+
+        strcpy(tag[tag_count].tag_mac, macT[tag_count]);
+        tag[tag_count].rssi = rssiT[tag_count];
+        tag[tag_count].timestamp = k_cycle_get_32();
+        strcpy(tag[tag_count].data, advDataT[tag_count]);
+        ++tag_count;
+
+        strcpy(tag[tag_count].tag_mac, macT[tag_count]);
+        tag[tag_count].rssi = rssiT[tag_count];
+        tag[tag_count].timestamp = k_cycle_get_32();
+        strcpy(tag[tag_count].data, advDataT[tag_count]);
+        ++tag_count;
+
+        strcpy(tag[tag_count].tag_mac, macT[tag_count]);
+        tag[tag_count].rssi = rssiT[tag_count];
+        tag[tag_count].timestamp = k_cycle_get_32();
+        strcpy(tag[tag_count].data, advDataT[tag_count]);
+        ++tag_count;
+
+        ttc=0;
+    }
+}
+
+// Prepares UART data for sending to cloud
 void process_uart(void)
 {
-	while(1) {
-		//ble_data_queue();
-		k_sleep(SLEEP_TIME);
+	if(USE_TEST){
+        test_data();
     }
+    tag_count_buf = tag_count;
+    tag_count = 0;
+    memcpy(tag_buf, tag, sizeof tag); 
+    memset(tag, 0, sizeof(tag));
+    encode_tags(tag_buf, tag_count_buf);
+    return;
 }
 
 u8_t uart_init()

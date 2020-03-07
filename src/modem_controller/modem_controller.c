@@ -45,13 +45,13 @@ int lte_connect(enum modem_actions action)
 		}
 	}
 
-	printk("Connected to LTE network");
+	printk("Connected to LTE network\n");
 
 	return 0;
 
 exit:
 
-	printk("LTE link could not be established, or maintained");
+	printk("LTE link could not be established, or maintained\n");
 
 	return 0;
 }

@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "http_controller.h"
+#include "ruuvinode.h"
 
 static struct sockaddr_in local_addr;
 static struct addrinfo *res;
@@ -11,6 +12,7 @@ static int send_data_len;
 static int mtu_size = MAX_MTU_SIZE;
 static char send_buf[SEND_BUF_SIZE];
 static int client_fd;
+int msgcnt;
 
 //HTTPS
 struct addrinfo hints;
@@ -166,14 +168,13 @@ void close_post_socket(void){
     }
 }
 
-int http_post(void){
+int http_post(char *m, size_t t){
     int num_bytes;
     send_data_len = snprintf(send_buf,
                             mtu_size,
                             POST_TEMPLATE, HTTP_PATH,
-                            HTTP_HOST, strlen(TEST_STRING),
-                            TEST_STRING);
-
+                            HTTP_HOST, t,
+                            m);
     do {
         num_bytes =
         blocking_send(client_fd, send_buf, send_data_len, 0);
@@ -184,16 +185,19 @@ int http_post(void){
         };
 
     } while (num_bytes < 0);
+    msgcnt++;
+    //Remove later
+    printk("Message %d Sent\n", msgcnt);
     return 0;
 }
 
-int https_post(void){
+int https_post(char *m, size_t t){
     int num_bytes;
     send_data_len = snprintf(send_buf,
                             mtu_size,
-                            POST_TEMPLATE, HTTPS_PATH,
-                            HTTPS_HOST, strlen(TEST_STRING),
-                            TEST_STRING);
+                            POST_TEMPLATE, HTTP_PATH,
+                            HTTP_HOST, t,
+                            m);
 
     num_bytes = send(client_fd, send_buf, send_data_len, 0);
 	if (num_bytes < 0) {
@@ -204,14 +208,11 @@ int https_post(void){
     return 0;
 }
 
-int post_message(void){
+/*
+void prepare_msg(void){
     int err;
-    if(HTTPS_MODE){
-        err = https_post();
-        return err;
+    err = encode_json(msg);
+    if(err){
+        printk("Error Prepare message");
     }
-    else{
-        err = http_post();
-        return err;
-    }
-}
+}*/

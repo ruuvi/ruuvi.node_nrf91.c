@@ -11,6 +11,7 @@
 #include "gps_controller.h"
 #include "http_controller.h"
 #include "ruuvinode.h"
+#include "data_parser.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(ruuvi_node, CONFIG_RUUVI_NODE_LOG_LEVEL);
@@ -29,7 +30,10 @@ static atomic_val_t GPS_STATUS;
 
 /* Sensor data */
 static struct gps_data gps_data;
+double latT = -65.305;
+double longT = 115.215;
 static struct modem_param_info modem_param;
+
 
 K_SEM_DEFINE(gps_timeout_sem, 0, 1);
 
@@ -86,7 +90,7 @@ void uartT(void){
 	}		
 }
 
-/** @brief Thread that will control the sending of traffic */
+/** @brief Thread that will control the sending of traffic 
 void sendT(void){
 	int cnt = 0;
 	while(1){
@@ -106,12 +110,12 @@ void sendT(void){
 			k_sleep(SLEEP_TIME);
 		}
 	}
-}
+}*/
 
 
-K_THREAD_DEFINE(uartThread, STACKSIZE, uartT, NULL, NULL, NULL,	PRIORITY, 0, K_NO_WAIT);
+//K_THREAD_DEFINE(uartThread, STACKSIZE, uartT, NULL, NULL, NULL,	PRIORITY, 0, K_NO_WAIT);
 
-K_THREAD_DEFINE(sendThread, STACKSIZE, sendT, NULL, NULL, NULL,	PRIORITY, 0, K_NO_WAIT);
+//K_THREAD_DEFINE(sendThread, STACKSIZE, sendT, NULL, NULL, NULL,	PRIORITY, 0, K_NO_WAIT);
 
 static void gps_trigger_handler(struct device *dev, struct gps_trigger *trigger)
 {
@@ -125,55 +129,24 @@ static void gps_trigger_handler(struct device *dev, struct gps_trigger *trigger)
 
 	fix_count = 0;
 
-	printk("gps control handler triggered!");
+	LOG_INF("gps control handler triggered!\n");
 	gps_sample_fetch(dev);
-	gps_channel_get(dev, GPS_CHAN_PVT, &gps_data);
-	printf("Longitude: %f\n", gps_data.pvt.longitude);
-	printf("Longitude: %f\n", gps_data.pvt.latitude);
-	printk("Trigger: GPS\n");
+	int err = gps_channel_get(dev, GPS_CHAN_PVT, &gps_data);
+	if(!err){
+		longT = gps_data.pvt.longitude;
+		latT = gps_data.pvt.latitude;
+		LOG_INF("GPS Coordinate Updated\n");
+	}
+	else{
+		LOG_ERR("GPS Update Failure\n");
+	}
+	
 	k_sem_give(&gps_timeout_sem);
 }
 
 static void test_data(void){
-	struct ble_report tag[20];
-	struct gps_report gpsLatest;
-	struct report sendData;
-	char* macT[] = {"000001000001", "000001000002", "000001000003"};
-	int rssiT[3] = {-51, -52, -53};
-	char* advDataT[] = {"02010699040501", "02010699040502", "02010699040503"};
-	double latT = -65.300;
-	double longT = 115.215;
-	char* imeiT = "111000001000001";
-
-
-	gpsLatest.timestamp = k_cycle_get_32();
-	gpsLatest.latitude = latT;
-	gpsLatest.longitude = longT;
-
-	strcpy(tag[0].tag_mac, macT[0]);
-	tag[0].rssi = rssiT[0];
-	tag[0].timestamp = k_cycle_get_32();
-	strcpy(tag[0].data, advDataT[0]);
-
-	strcpy(tag[1].tag_mac, macT[1]);
-	tag[1].rssi = rssiT[1];
-	tag[1].timestamp = k_cycle_get_32();
-	strcpy(tag[1].data, advDataT[1]);
-
-	strcpy(tag[2].tag_mac, macT[2]);
-	tag[2].rssi = rssiT[2];
-	tag[2].timestamp = k_cycle_get_32();
-	strcpy(tag[2].data, advDataT[2]);
-
-	strcpy(sendData.imei, imeiT);
-	sendData.timestamp = k_cycle_get_32();
-	sendData.latest_gps = gpsLatest;
-	sendData.latest_ble[0] = tag[0];
-	sendData.latest_ble[1] = tag[1];
-	sendData.latest_ble[1] = tag[1];
-
-	//printk("%s", sendData.latest_ble[0].tag_mac);
-	//printk("%d", sendData.latest_ble[1].rssi);
+	latT += 5;
+	longT += 2;
 }
 
 /** @brief Initialises the peripherals that are used by the application. */
@@ -217,18 +190,18 @@ static void sensors_init(void)
 	err = modem_data_init();
 	if (err) {
 		LOG_ERR("modem_data_init, error: %d", err);
-		//error_handler(err);
 	}
 
+	if(USE_LTE){
 	//Modem LTE Connection
-	md = lte_connect(LTE_INIT);
-	if (md) {
-		LOG_ERR("lte_connect, error: %d", md);
-		//error_handler(err);
-	}
-	else{
-		atomic_set(&MODEM_STATUS, md);
-		toggle_led_three(md);
+		md = lte_connect(LTE_INIT);
+		if (md) {
+			LOG_ERR("lte_connect, error: %d", md);
+		}
+		else{
+			atomic_set(&MODEM_STATUS, md);
+			toggle_led_three(md);
+		}
 	}
 }
 
@@ -237,24 +210,40 @@ void main(void)
 	LOG_INF("Application started\n");
 	// Initilise the peripherals
 	sensors_init();
-	test_data();
-	
 
-	while(1){
-		flash_led_four();
-		if(USE_GPS){
-			/*Start GPS search*/
-			LOG_INF("Start GPS");
-			gps_control_start(K_NO_WAIT);
-
-			/*Wait for GPS search timeout*/
-			k_sem_take(&gps_timeout_sem, K_SECONDS(SLEEP_TIME));
-
-			/*Stop GPS search*/
-			LOG_INF("Stop GPS");
-			gps_control_stop(K_NO_WAIT);
-		}
-		k_sleep(GPS_UPDATE_INTERVAL);
-		
+	if(USE_HTTP){
+		open_post_socket();
 	}
+	while(1){
+		struct msg_buf msg;
+		flash_led_four();
+		//if(USE_GPS){
+			///*Start GPS search*/
+			//LOG_INF("Start GPS");
+			//gps_control_start(K_NO_WAIT);
+//
+			///*Wait for GPS search timeout*/
+			//k_sem_take(&gps_timeout_sem, K_SECONDS(SLEEP_TIME));
+//
+			///*Stop GPS search*/
+			//LOG_INF("Stop GPS");
+			//gps_control_stop(K_NO_WAIT);
+		//}
+		if(USE_TEST && !USE_GPS){
+			test_data();
+		}
+		process_uart();
+		
+		if(USE_HTTP){
+			encode_json(&msg, latT, longT);
+			if(!HTTPS_MODE){
+				http_post(msg.buf, msg.len);
+			}
+			else{
+				https_post(msg.buf, msg.len);
+			}
+		}
+		k_sleep(ADV_POST_INTERVAL);	
+	}
+
 }
