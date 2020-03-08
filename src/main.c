@@ -75,45 +75,10 @@ int modem_data_init(void)
 	return 0;
 }
 
-/** @brief May be removed in future. UART callback currently processing the data */
-void uartT(void){
-	while (1){
-		if(!atomic_get(&UART_STATUS)){
-			while (!atomic_get(&UART_STATUS)){
-				flash_led_two();
-				k_sleep(SLEEP_TIME);
-			}
-		}
-		else{
-			k_sleep(SLEEP_TIME);
-		}
-	}		
-}
-
-/** @brief Thread that will control the sending of traffic 
-void sendT(void){
-	int cnt = 0;
-	while(1){
-		if(!atomic_get(&MODEM_STATUS)){
-			//Open HTTP/S socket
-			open_post_socket();
-			while (!atomic_get(&MODEM_STATUS)){
-				flash_led_three();
-				
-				post_message();
-				++cnt;
-				LOG_INF("sendT: HTTP POST MESSAGE %d", cnt);
-				k_sleep(ADV_POST_INTERVAL);
-			}
-		}
-		else{
-			k_sleep(SLEEP_TIME);
-		}
-	}
-}*/
 
 
-//K_THREAD_DEFINE(uartThread, STACKSIZE, uartT, NULL, NULL, NULL,	PRIORITY, 0, K_NO_WAIT);
+
+
 
 //K_THREAD_DEFINE(sendThread, STACKSIZE, sendT, NULL, NULL, NULL,	PRIORITY, 0, K_NO_WAIT);
 
@@ -207,6 +172,8 @@ static void sensors_init(void)
 
 void main(void)
 {
+	int err;
+
 	LOG_INF("Application started\n");
 	// Initilise the peripherals
 	sensors_init();
@@ -215,32 +182,51 @@ void main(void)
 		open_post_socket();
 	}
 	while(1){
-		struct msg_buf msg;
-		flash_led_four();
-		//if(USE_GPS){
-			///*Start GPS search*/
-			//LOG_INF("Start GPS");
-			//gps_control_start(K_NO_WAIT);
-//
-			///*Wait for GPS search timeout*/
-			//k_sem_take(&gps_timeout_sem, K_SECONDS(SLEEP_TIME));
-//
-			///*Stop GPS search*/
-			//LOG_INF("Stop GPS");
-			//gps_control_stop(K_NO_WAIT);
-		//}
-		if(USE_TEST && !USE_GPS){
-			test_data();
-		}
-		process_uart();
 		
-		if(USE_HTTP){
-			encode_json(&msg, latT, longT);
-			if(!HTTPS_MODE){
-				http_post(msg.buf, msg.len);
+		flash_led_four();
+		if(USE_GPS){
+			/*Start GPS search*/
+			LOG_INF("Start GPS");
+			gps_control_start(K_NO_WAIT);
+
+			/*Wait for GPS search timeout*/
+			k_sem_take(&gps_timeout_sem, K_SECONDS(SLEEP_TIME));
+
+			/*Stop GPS search*/
+			LOG_INF("Stop GPS");
+			gps_control_stop(K_NO_WAIT);
+		}
+		else{
+			if(USE_TEST){
+				test_data();
+			}
+			/*Check lte connection*/
+			err = lte_connect(CHECK_LTE_CONNECTION);
+			if(!err){
+				if(USE_HTTP){
+					struct msg_buf msg;
+					process_uart();
+					encode_json(&msg, latT, longT);
+					if(!HTTPS_MODE){
+						err = http_post(msg.buf, msg.len);
+						free(msg.buf);
+					}
+					else{
+						err = https_post(msg.buf, msg.len);
+						free(msg.buf);
+					}
+					if(err){
+						close_post_socket();
+						open_post_socket();	
+					}
+				}
+				//LOG_INF("Free msg\n");
+						k_sleep(ADV_POST_INTERVAL);
 			}
 			else{
-				https_post(msg.buf, msg.len);
+				close_post_socket();
+				lte_connect(LTE_INIT);
+				open_post_socket();
 			}
 		}
 		k_sleep(ADV_POST_INTERVAL);	

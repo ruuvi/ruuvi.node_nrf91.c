@@ -1,12 +1,12 @@
-//HTTP
-#define HTTP_HOST "ptsv2.com"
-#define HTTP_PATH "/t/ruuvi-node/post"
-#define HTTPS_HOST "webhook.site" 
-#define HTTPS_PATH "/06149a93-d592-431a-943b-9b3a97c0d065"
+#include <zephyr.h>
 
+#define HTTPS_HOST "hookb.in"
+#define HTTPS_PATH "/je1p2KQPVohobX0plwYo"
+#define HTTP_HOST "ptsv2.com"
+#define HTTP_PATH "/t/lysuo-1583639058/post"
 #define HTTP_PORT 80
 #define HTTPS_PORT 443
-#define MAX_MTU_SIZE     1000
+#define MAX_MTU_SIZE     4096
 #define RECV_BUF_SIZE    4096
 #define SEND_BUF_SIZE    MAX_MTU_SIZE
 
@@ -32,5 +32,3 @@ int open_https_socket(void);
 void close_post_socket(void);
 void close_http_socket(void);
 void close_https_socket(void);
-
-//void prepare_msg(void);

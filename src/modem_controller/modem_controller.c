@@ -27,14 +27,14 @@ int lte_connect(enum modem_actions action)
 				return err;
 			}
 		}
+		printk("Connected to LTE network\n");
 	} else if (action == CHECK_LTE_CONNECTION) {
 		err = lte_lc_nw_reg_status_get(&nw_reg_status);
 		if (err) {
 			printk("lte_lc_nw_reg_status error: %d", err);
-			//error_handler(err);
 		}
 
-		printk("Checking LTE connection...");
+		//printk("Checking LTE connection...");
 
 		switch (nw_reg_status) {
 		case LTE_LC_NW_REG_REGISTERED_HOME:
@@ -45,7 +45,7 @@ int lte_connect(enum modem_actions action)
 		}
 	}
 
-	printk("Connected to LTE network\n");
+	
 
 	return 0;
 

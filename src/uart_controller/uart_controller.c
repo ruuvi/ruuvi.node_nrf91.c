@@ -11,9 +11,6 @@
 #include "uart_controller.h"
 #include "ruuvinode.h"
 
-
-#define SLEEP_TIME	10000
-
 //Define the device
 #define BLE_UART "UART_1"
 static struct device *uart_dev;
@@ -33,40 +30,104 @@ static struct device *uart_dev;
 #define NRF_CMD1_LEN 3
 #define NRF_CMD2_LEN 1*/
 
-static u8_t uart_buf;
-static u8_t buf_cpy;
+char rx_buf[UART_RX_BUF_SIZE];
 
-struct ble_report tag[20];
-struct ble_report tag_buf[20];
+struct ble_report tag[MAX_ADVS_TABLE];
+struct ble_report tag_buf[MAX_ADVS_TABLE];
 int tag_count;
 int tag_count_buf;
-int ttc = 0;
 
-static void uart_data_parse(u8_t uart_buffer){
+static void uart_data_parse(char *msg_orig){
     
-    char* token;
-    char string[512];
+    int err = 0;
+    const int tokens_num = 3;
+	int rssi = -1;
+	char *tokens[tokens_num+5];
+	int i = 0;
+	char *pch;
+	char *data;
+	char *tag_mac;
 
-    sprintf(string, "%c", uart_buffer);
-    for (token = strtok(string, ", \0"); token; token = strtok(NULL, ", \0"))
-    {
-        //printf("%s", token);
+    char *msg = strdup(msg_orig);
+
+	pch = strtok(msg, ",");
+	while (pch != NULL && i < 4) {
+		tokens[i++] = pch;
+		pch = strtok(NULL, ",");
+	}
+
+	if (i != tokens_num) {
+		err++;
+        printk("i: %d and is not equal to tokens\n", i);
+        printk("UART BUF: %s \n", msg_orig);
+        goto end;
+	}
+
+    tag_mac = tokens[0];
+	data = tokens[1];
+	rssi = atoi(tokens[2]);
+
+    if (strlen(tag_mac) != MAC_LEN) {
+		err++;
+        printk("mac len wrong: %s \n", tag_mac);
+        printk("UART BUF: %s \n", msg_orig);
+        goto end;
+	}
+
+	if (strlen(data) > ADV_DATA_MAX_LEN) {
+		err++;
+        printk("data len wrong: %s \n", data);
+        printk("UART BUF: %s \n", msg_orig);
+        goto end;
+	}
+
+	if (rssi > 0) {
+		err++;
+        printk("rssi wrong: %d \n", rssi);
+        printk("UART BUF: %s \n", msg_orig);
+        goto end;
+	}
+
+    
+    if(tag_count >= MAX_ADVS_TABLE){
+        //printk("Reached limit\n");
     }
+    else{
+    strcpy(tag[tag_count].tag_mac, tag_mac);
+    tag[tag_count].rssi = rssi;
+    strcpy(tag[tag_count].data, data);
+    tag[tag_count].timestamp = k_cycle_get_32();
+    ++tag_count;
+	}
+end:
+    free(msg);
+    free(pch);
+    return;
 }
 
 
 static void uart_fifo_callback(struct device *dev)
 {
-    
-    uart_irq_update(dev);
-    
-	if (uart_irq_rx_ready(dev)) {
-		uart_fifo_read(dev, &uart_buf, 1);
+    u8_t data;
+    if (!uart_irq_update(dev)) {
+        printk("Error: uart_irq_update");
     }
-    buf_cpy = uart_buf;
-    uart_data_parse(buf_cpy);
-
-    
+    if (uart_irq_rx_ready(dev)) {
+        const int rxBytes = uart_fifo_read(dev, &data, 1);
+        if(rxBytes >0){
+            char temp[512];
+            sprintf(temp, "%c", data);
+            char *ptr = strstr(temp, "\n");
+            if(ptr == NULL){
+                strcat(rx_buf, temp);
+            }
+            else{
+                //printk("%s \n", rx_buf);
+                uart_data_parse(rx_buf);
+                memset(rx_buf, 0, 512);
+            }
+        }
+    }
 }
 
 void uart_driver_write(char *data)      
@@ -79,88 +140,18 @@ void uart_driver_write(char *data)
     }
 }
 
-
-static void test_data(void){
-	if(ttc == 0){
-        char* macT[] = {"100001000001", "100001000002", "100001000003"};
-        int rssiT[3] = {-51, -52, -53};
-        char* advDataT[] = {"02010699040501", "02010699040502", "02010699040503"};
-
-        strcpy(tag[tag_count].tag_mac, macT[tag_count]);
-        tag[tag_count].rssi = rssiT[tag_count];
-        tag[tag_count].timestamp = k_cycle_get_32();
-        strcpy(tag[tag_count].data, advDataT[tag_count]);
-        ++tag_count;
-
-        strcpy(tag[tag_count].tag_mac, macT[tag_count]);
-        tag[tag_count].rssi = rssiT[tag_count];
-        tag[tag_count].timestamp = k_cycle_get_32();
-        strcpy(tag[tag_count].data, advDataT[tag_count]);
-        ++tag_count;
-
-        strcpy(tag[tag_count].tag_mac, macT[tag_count]);
-        tag[tag_count].rssi = rssiT[tag_count];
-        tag[tag_count].timestamp = k_cycle_get_32();
-        strcpy(tag[tag_count].data, advDataT[tag_count]);
-        ++tag_count;
-        ttc++;
-    }
-    else{
-        char* macT[] = {"200001000001", "200001000002", "200001000003", "200001000004", "200001000005", "200001000006"};
-        int rssiT[6] = {-61, -62, -63, -61, -62, -63};
-        char* advDataT[] = {"02010699040501", "02010699040502", "02010699040503", "02010699040501", "02010699040502", "02010699040503"};
-
-        strcpy(tag[tag_count].tag_mac, macT[tag_count]);
-        tag[tag_count].rssi = rssiT[tag_count];
-        tag[tag_count].timestamp = k_cycle_get_32();
-        strcpy(tag[tag_count].data, advDataT[tag_count]);
-        ++tag_count;
-
-        strcpy(tag[tag_count].tag_mac, macT[tag_count]);
-        tag[tag_count].rssi = rssiT[tag_count];
-        tag[tag_count].timestamp = k_cycle_get_32();
-        strcpy(tag[tag_count].data, advDataT[tag_count]);
-        ++tag_count;
-
-        strcpy(tag[tag_count].tag_mac, macT[tag_count]);
-        tag[tag_count].rssi = rssiT[tag_count];
-        tag[tag_count].timestamp = k_cycle_get_32();
-        strcpy(tag[tag_count].data, advDataT[tag_count]);
-        ++tag_count;
-
-        strcpy(tag[tag_count].tag_mac, macT[tag_count]);
-        tag[tag_count].rssi = rssiT[tag_count];
-        tag[tag_count].timestamp = k_cycle_get_32();
-        strcpy(tag[tag_count].data, advDataT[tag_count]);
-        ++tag_count;
-
-        strcpy(tag[tag_count].tag_mac, macT[tag_count]);
-        tag[tag_count].rssi = rssiT[tag_count];
-        tag[tag_count].timestamp = k_cycle_get_32();
-        strcpy(tag[tag_count].data, advDataT[tag_count]);
-        ++tag_count;
-
-        strcpy(tag[tag_count].tag_mac, macT[tag_count]);
-        tag[tag_count].rssi = rssiT[tag_count];
-        tag[tag_count].timestamp = k_cycle_get_32();
-        strcpy(tag[tag_count].data, advDataT[tag_count]);
-        ++tag_count;
-
-        ttc=0;
-    }
-}
-
 // Prepares UART data for sending to cloud
 void process_uart(void)
 {
-	if(USE_TEST){
-        test_data();
-    }
+	//if(USE_TEST){
+      //  test_data();
+    //}
     tag_count_buf = tag_count;
     tag_count = 0;
     memcpy(tag_buf, tag, sizeof tag); 
     memset(tag, 0, sizeof(tag));
     encode_tags(tag_buf, tag_count_buf);
+    memset(tag_buf, 0, sizeof(tag_buf));
     return;
 }
 

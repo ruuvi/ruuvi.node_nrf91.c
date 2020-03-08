@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-
 //Used to controll Application Features
 //Plan to move into prj.conf
 #define USE_TEST 1
@@ -11,7 +10,7 @@
 #define USE_HTTP 1
 #define USE_MQTT 0
 
-#define HTTPS_MODE 0 //0 for http, 1 for https
+#define HTTPS_MODE 1 //0 for http, 1 for https
 
 #define RUUVI_COMPANY_ID 0x0499
 
@@ -20,6 +19,6 @@
 
 #define GPS_UPDATE_INTERVAL 60000
 #define ADV_POST_INTERVAL 10000		//Change to 10000 later
-#define MAX_ADVS_TABLE 20
+#define MAX_ADVS_TABLE 10
 
 extern char gw_mac[MAC_LEN+1];

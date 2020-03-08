@@ -6,17 +6,15 @@
 #include "http_controller.h"
 #include "ruuvinode.h"
 
-static struct sockaddr_in local_addr;
-static struct addrinfo *res;
+
 static int send_data_len;
 static int mtu_size = MAX_MTU_SIZE;
 static char send_buf[SEND_BUF_SIZE];
 static int client_fd;
 int msgcnt;
+static struct addrinfo *res;
 
-//HTTPS
-struct addrinfo hints;
-char recv_buf[RECV_BUF_SIZE + 1];
+
 
 int blocking_recv(int fd, u8_t *buf, u32_t size, u32_t flags)
 {
@@ -53,6 +51,8 @@ int blocking_connect(int fd, struct sockaddr *local_addr, socklen_t len)
 
 int open_http_socket(void){
     
+    static struct sockaddr_in local_addr;
+
     local_addr.sin_family = AF_INET;
     local_addr.sin_port = htons(0);
     local_addr.sin_addr.s_addr = 0;
@@ -82,6 +82,9 @@ int open_http_socket(void){
 
 int open_https_socket(void){
     int err;
+    struct addrinfo hints;
+    static struct sockaddr_in local_addr;
+
     hints.ai_flags = 0;
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
@@ -160,6 +163,7 @@ void close_https_socket(void){
 }
 
 void close_post_socket(void){
+    msgcnt =0;
     if(HTTPS_MODE){
         close_https_socket();
     }
@@ -175,6 +179,9 @@ int http_post(char *m, size_t t){
                             POST_TEMPLATE, HTTP_PATH,
                             HTTP_HOST, t,
                             m);
+
+    //printk("%d Send Data length\n", send_data_len);
+    
     do {
         num_bytes =
         blocking_send(client_fd, send_buf, send_data_len, 0);
@@ -195,24 +202,20 @@ int https_post(char *m, size_t t){
     int num_bytes;
     send_data_len = snprintf(send_buf,
                             mtu_size,
-                            POST_TEMPLATE, HTTP_PATH,
-                            HTTP_HOST, t,
+                            POST_TEMPLATE, HTTPS_PATH,
+                            HTTPS_HOST, t,
                             m);
 
-    num_bytes = send(client_fd, send_buf, send_data_len, 0);
+    //printk("%d Send Data length\n", send_data_len);
+
+    num_bytes = blocking_send(client_fd, send_buf, send_data_len, 0);
 	if (num_bytes < 0) {
 		printk("send errno: %d\n", errno);
 		close_https_socket();
         return 1;
 	}
+    msgcnt++;
+    //Remove later
+    printk("Message %d Sent\n", msgcnt);
     return 0;
 }
-
-/*
-void prepare_msg(void){
-    int err;
-    err = encode_json(msg);
-    if(err){
-        printk("Error Prepare message");
-    }
-}*/

@@ -36,6 +36,11 @@ int encode_tags(struct ble_report *r, int count){
             ++err;
         }
 
+        if (cJSON_AddNumberToObject(tag, "timestamp", r[index].timestamp) == NULL)
+        {
+            ++err;
+        }
+
 		if (cJSON_AddStringToObject(tag, "data", r[index].data) == NULL)
         {
             ++err;
@@ -49,27 +54,22 @@ int encode_tags(struct ble_report *r, int count){
 int encode_json(struct msg_buf *output, double la, double lo)
 {
 	int err = 0;
-    cJSON *gwLat = NULL;
-    cJSON *gwLong = NULL;
-    
-    cJSON *root_obj = NULL;
-    cJSON *gw_obj = NULL;
 
-	root_obj = cJSON_CreateObject();
+	cJSON *root_obj = cJSON_CreateObject();
 	if (root_obj == NULL){
 		printk("Error: Creating root object");
 		++err;
 		goto end;
 	}
 	
-    gw_obj = cJSON_CreateObject();
+    cJSON *gw_obj = cJSON_CreateObject();
 	if (gw_obj == NULL){
 		printk("Error: Creating root object");
 		++err;
 		goto end;
 	}
 
-	gwLat = cJSON_CreateNumber(la);
+	cJSON *gwLat = cJSON_CreateNumber(la);
     if (gwLat == NULL)
     {
 		printk("Error: Creating gwLat");
@@ -78,7 +78,7 @@ int encode_json(struct msg_buf *output, double la, double lo)
     }
 	cJSON_AddItemToObject(gw_obj, "latitude", gwLat);
 
-	gwLong = cJSON_CreateNumber(lo);
+	cJSON *gwLong = cJSON_CreateNumber(lo);
     if (gwLong == NULL)
     {
 		printk("Error: Creating gwLong");
@@ -87,6 +87,14 @@ int encode_json(struct msg_buf *output, double la, double lo)
     }
 	cJSON_AddItemToObject(gw_obj, "longitude", gwLong);
 	
+    cJSON *gwTime = cJSON_CreateNumber(k_cycle_get_32());
+    if (gwTime == NULL)
+    {
+		printk("Error: Creating gwTime");
+		++err;
+        goto end;
+    }
+	cJSON_AddItemToObject(gw_obj, "timestamp", gwTime);
 
     cJSON_AddItemToObject(gw_obj, "tags", tags);
     cJSON_AddItemToObject(root_obj, imeiT, gw_obj);
@@ -97,6 +105,7 @@ int encode_json(struct msg_buf *output, double la, double lo)
     {
         printk("Failed to print root_obj.\n");
 		++err;
+        goto end;
     }
 	//printk("Encoded message: %s\n", temp);
 
@@ -105,5 +114,7 @@ int encode_json(struct msg_buf *output, double la, double lo)
 
 end:
     cJSON_Delete(root_obj);
+    //cJSON_Delete(gw_obj);
+    //cJSON_Delete(tags);
     return err;
 }
