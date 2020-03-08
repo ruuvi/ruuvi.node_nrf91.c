@@ -1,7 +1,7 @@
 #include <zephyr.h>
 
-#define HTTPS_HOST "hookb.in"
-#define HTTPS_PATH "/je1p2KQPVohobX0plwYo"
+#define HTTPS_HOST "webhook.site"
+#define HTTPS_PATH "/fe68a468-6f97-484a-8403-bd592a5eac07"
 #define HTTP_HOST "ptsv2.com"
 #define HTTP_PATH "/t/lysuo-1583639058/post"
 #define HTTP_PORT 80

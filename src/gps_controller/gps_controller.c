@@ -16,6 +16,8 @@
 #include <logging/log.h>
 LOG_MODULE_REGISTER(gps_control, CONFIG_GPS_CONTROL_LOG_LEVEL);
 
+static struct k_work_q *gps_work_q;
+
 #if !defined(CONFIG_GPS_SIM)
 /* Structure to hold GPS work information */
 static struct {
@@ -54,8 +56,11 @@ static int start(void)
 
 	atomic_set(&gps_is_active, 1);
 
-	LOG_INF("GPS started successfully.Searching for satellites");
+	LOG_INF("GPS started successfully. Searching for satellites ");
 	LOG_INF("to get position fix. This may take several minutes.");
+	LOG_INF("The device will attempt to get a fix for %d seconds, ",
+		CONFIG_GPS_CONTROL_FIX_TRY_TIME);
+	LOG_INF("before the GPS is stopped.");
 
 	return 0;
 }
@@ -96,6 +101,12 @@ static void gps_work_handler(struct k_work *work)
 
 		atomic_set(&gps_is_active, 1);
 
+
+		gps_work.type = GPS_WORK_STOP;
+
+		k_delayed_work_submit_to_queue(gps_work_q, &gps_work.work,
+					       K_SECONDS(CONFIG_GPS_CONTROL_FIX_TRY_TIME));
+
 		return;
 	} else if (gps_work.type == GPS_WORK_STOP) {
 		err = stop();
@@ -118,8 +129,8 @@ static void gps_work_handler(struct k_work *work)
 		LOG_INF("The device will try to get fix again in %d seconds",
 			CONFIG_GPS_CONTROL_FIX_CHECK_INTERVAL);
 
-		k_delayed_work_submit(&gps_work.work,
-			K_SECONDS(CONFIG_GPS_CONTROL_FIX_CHECK_INTERVAL));
+		k_delayed_work_submit_to_queue(gps_work_q, &gps_work.work,
+					       K_SECONDS(CONFIG_GPS_CONTROL_FIX_CHECK_INTERVAL));
 	}
 }
 #endif /* !defined(GPS_SIM) */
@@ -155,6 +166,7 @@ void gps_control_disable(void)
 #if !defined(CONFIG_GPS_SIM)
 	atomic_set(&gps_is_enabled, 0);
 	gps_control_stop(K_NO_WAIT);
+
 #endif
 }
 
@@ -163,7 +175,7 @@ void gps_control_stop(u32_t delay_ms)
 #if !defined(CONFIG_GPS_SIM)
 	k_delayed_work_cancel(&gps_work.work);
 	gps_work.type = GPS_WORK_STOP;
-	k_delayed_work_submit(&gps_work.work, delay_ms);
+	k_delayed_work_submit_to_queue(gps_work_q, &gps_work.work, delay_ms);
 #endif
 }
 
@@ -172,7 +184,7 @@ void gps_control_start(u32_t delay_ms)
 #if !defined(CONFIG_GPS_SIM)
 	k_delayed_work_cancel(&gps_work.work);
 	gps_work.type = GPS_WORK_START;
-	k_delayed_work_submit(&gps_work.work, delay_ms);
+	k_delayed_work_submit_to_queue(gps_work_q, &gps_work.work, delay_ms);
 #endif
 }
 
@@ -184,11 +196,15 @@ void gps_control_on_trigger(void)
 }
 
 /** @brief Configures and starts the GPS device. */
-int gps_control_init(gps_trigger_handler_t handler)
+int gps_control_init(struct k_work_q *work_q, gps_trigger_handler_t handler)
 {
+	if ((work_q == NULL) || (handler == NULL)) {
+		return -EINVAL;
+	}
+
 	int err;
 	struct device *gps_dev;
-
+	gps_work_q = work_q;
 #ifdef CONFIG_GPS_SIM
 	struct gps_trigger gps_trig = {
 		.type = GPS_TRIG_DATA_READY
@@ -202,7 +218,8 @@ int gps_control_init(gps_trigger_handler_t handler)
 
 	gps_dev = device_get_binding(CONFIG_GPS_DEV_NAME);
 	if (gps_dev == NULL) {
-		LOG_ERR("Could not get %s device", log_strdup(CONFIG_GPS_DEV_NAME));
+		LOG_ERR("Could not get %s device",
+			log_strdup(CONFIG_GPS_DEV_NAME));
 		return -ENODEV;
 	}
 
