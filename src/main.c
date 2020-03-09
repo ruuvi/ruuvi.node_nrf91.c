@@ -150,26 +150,6 @@ static void sensors_init(void)
 	toggle_led_two(ut);
 	toggle_led_three(md);
 
-	//GPS
-	if(USE_GPS){
-		gp = gps_control_init(&application_work_q, gps_trigger_handler);
-		if (gp) {
-			LOG_ERR("gps_control_init, error %d", gp);
-		}
-		else{
-			LOG_INF("GPS Initialised");
-			atomic_set(&GPS_STATUS, gp);
-			toggle_led_one(gp);
-		}
-	}
-
-	// UART
-	while(ut){
-		ut = uart_init();
-	}
-	toggle_led_two(ut);
-	atomic_set(&UART_STATUS, ut);
-		
 	//Modem Data
 	int err;
 	err = modem_data_init();
@@ -189,10 +169,27 @@ static void sensors_init(void)
 		}
 	}
 
-	if(!gp){
-		set_gps_enable(true);
+	//GPS
+	if(USE_GPS){
+		gp = gps_control_init(&application_work_q, gps_trigger_handler);
+		if (gp) {
+			LOG_ERR("gps_control_init, error %d", gp);
+		}
+		else{
+			LOG_INF("GPS Initialised");
+			atomic_set(&GPS_STATUS, gp);
+			toggle_led_one(gp);
+			k_sleep(5000);
+			set_gps_enable(true);
+		}
 	}
-	k_sleep(10000);
+
+	// UART
+	while(ut){
+		ut = uart_init();
+	}
+	toggle_led_two(ut);
+	atomic_set(&UART_STATUS, ut);
 }
 
 void main(void)
