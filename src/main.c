@@ -26,8 +26,9 @@ LOG_MODULE_REGISTER(ruuvi_node, CONFIG_RUUVI_NODE_LOG_LEVEL);
 static atomic_val_t UART_STATUS;
 static atomic_val_t MODEM_STATUS;
 static atomic_val_t GPS_STATUS;
-static atomic_val_t HTTP_SOCKET_STATUS;
+//static atomic_val_t HTTP_SOCKET_STATUS;
 static atomic_val_t GPS_FIRST_FIX;
+static int conf = 0;
 
 // Sensor data
 static struct gps_data gps_data;
@@ -166,6 +167,7 @@ static void sensors_init(void)
 		else{
 			atomic_set(&MODEM_STATUS, md);
 			toggle_led_three(md);
+			setup_psm();
 		}
 	}
 
@@ -190,6 +192,7 @@ static void sensors_init(void)
 	}
 	toggle_led_two(ut);
 	atomic_set(&UART_STATUS, ut);
+	k_sleep(K_SECONDS(5));
 }
 
 void main(void)
@@ -208,42 +211,36 @@ void main(void)
 	while(1){
 		
 		flash_led_four();
-		
-		if(!HTTP_SOCKET_STATUS && !MODEM_STATUS){
-			open_post_socket();
-			atomic_set(&HTTP_SOCKET_STATUS, 1);
-		}
-
-		/*Check lte connection*/
-		err = lte_connect(CHECK_LTE_CONNECTION);
-		if(!err){
-			if(USE_HTTP){
-				struct msg_buf msg;
-				process_uart();
-				encode_json(&msg, latT, longT);
-				if(!HTTPS_MODE){
-					err = http_post(msg.buf, msg.len);
+		if(!gps_control_is_active()){
+			socket_toggle(true);
+			k_sleep(K_SECONDS(1));
+			if(!gps_control_is_active()){
+				/*Check lte connection*/
+				err = lte_connect(CHECK_LTE_CONNECTION);
+				
+				if(!err){
+					open_post_socket();
+					struct msg_buf msg;
+					process_uart();
+					encode_json(&msg, latT, longT);
+					if(HTTPS_MODE){
+						err = https_post(msg.buf, msg.len);
+					}
+					else{
+						err = http_post(msg.buf, msg.len);
+					}
+					
 					free(msg.buf);
+					close_http_socket();
 				}
 				else{
-					err = https_post(msg.buf, msg.len);
-					free(msg.buf);
-				}
-				if(err){
-					close_post_socket();
-					atomic_set(&HTTP_SOCKET_STATUS, 0);
+					lte_connect(LTE_INIT);
 				}
 			}
-		//LOG_INF("Free msg\n");
+			k_sleep(K_SECONDS(2));
+			socket_toggle(false);
 		}
-		else{
-			close_post_socket();
-			atomic_set(&HTTP_SOCKET_STATUS, 0);
-			lte_connect(LTE_INIT);
-		}
-		
-		k_sleep(K_SECONDS(ADV_POST_INTERVAL));	
-		printf("LAT %f, Long %f\n", latT, longT);
+		k_sleep(K_SECONDS(ADV_POST_INTERVAL-3));
 	}
 
 }

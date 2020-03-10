@@ -30,6 +30,8 @@ bool gps_control_is_active(void);
 
 bool gps_control_is_enabled(void);
 
+bool socket_toggle(bool sock);
+
 void gps_control_enable(void);
 
 void gps_control_disable(void);

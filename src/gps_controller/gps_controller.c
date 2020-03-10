@@ -31,6 +31,7 @@ static struct {
 
 static atomic_t gps_is_active;
 static atomic_t gps_is_enabled;
+static atomic_t socket_active;
 
 static int start(void)
 {
@@ -89,50 +90,57 @@ static int stop(void)
 static void gps_work_handler(struct k_work *work)
 {
 	int err;
+	if(atomic_get(&socket_active)==0){
+		if (gps_work.type == GPS_WORK_START) {
+			err = start();
+			if (err) {
+				LOG_ERR("GPS could not be started, error: %d", err);
+				return;
+			}
 
-	if (gps_work.type == GPS_WORK_START) {
-		err = start();
-		if (err) {
-			LOG_ERR("GPS could not be started, error: %d", err);
+			LOG_INF("GPS operation started");
+
+			atomic_set(&gps_is_active, 1);
+
+			gps_work.type = GPS_WORK_STOP;
+			k_delayed_work_submit_to_queue(gps_work_q, &gps_work.work,
+							K_SECONDS(CONFIG_GPS_CONTROL_FIX_TRY_TIME));
+
+			return;
+		} 
+		else if (gps_work.type == GPS_WORK_STOP) 
+		{
+			err = stop();
+			if (err) {
+				LOG_ERR("GPS could not be stopped, error: %d", err);
+				return;
+			}
+
+			LOG_INF("GPS operation was stopped");
+
+			atomic_set(&gps_is_active, 0);
+
+			if (atomic_get(&gps_is_enabled) == 0) {
+				return;
+			}
+
+			gps_work.type = GPS_WORK_START;
+
+
+			LOG_INF("The device will try to get fix again in %d seconds",
+				CONFIG_GPS_CONTROL_FIX_CHECK_INTERVAL);
+
+			k_delayed_work_submit_to_queue(gps_work_q, &gps_work.work,
+							K_SECONDS(CONFIG_GPS_CONTROL_FIX_CHECK_INTERVAL));
 			return;
 		}
-
-		LOG_INF("GPS operation started");
-
-		atomic_set(&gps_is_active, 1);
-
-
-		gps_work.type = GPS_WORK_STOP;
-
+	}
+	else{
 		k_delayed_work_submit_to_queue(gps_work_q, &gps_work.work,
-					       K_SECONDS(CONFIG_GPS_CONTROL_FIX_TRY_TIME));
-
-		return;
-	} else if (gps_work.type == GPS_WORK_STOP) {
-		err = stop();
-		if (err) {
-			LOG_ERR("GPS could not be stopped, error: %d", err);
-			return;
-		}
-
-		LOG_INF("GPS operation was stopped");
-
-		atomic_set(&gps_is_active, 0);
-
-		if (atomic_get(&gps_is_enabled) == 0) {
-			return;
-		}
-
-		gps_work.type = GPS_WORK_START;
-
-
-		LOG_INF("The device will try to get fix again in %d seconds",
-			CONFIG_GPS_CONTROL_FIX_CHECK_INTERVAL);
-
-		k_delayed_work_submit_to_queue(gps_work_q, &gps_work.work,
-					       K_SECONDS(CONFIG_GPS_CONTROL_FIX_CHECK_INTERVAL));
+						K_SECONDS(2));
 	}
 }
+
 #endif /* !defined(GPS_SIM) */
 
 bool gps_control_is_active(void)
@@ -151,6 +159,17 @@ bool gps_control_is_enabled(void)
 #else
 	return false;
 #endif
+}
+
+bool socket_toggle(bool sock){
+	if(sock){
+		atomic_set(&socket_active, 1);
+		return true;
+	}
+	else{
+		atomic_set(&socket_active, 0);
+		return false;
+	}
 }
 
 void gps_control_enable(void)
