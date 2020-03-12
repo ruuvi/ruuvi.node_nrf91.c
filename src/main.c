@@ -39,9 +39,6 @@ K_THREAD_STACK_DEFINE(application_stack_area,
 		      CONFIG_APPLICATION_WORKQUEUE_STACK_SIZE);
 static struct k_work_q application_work_q;
 
-
-//K_SEM_DEFINE(gps_timeout_sem, 0, 1);
-
 static void set_gps_enable(const bool enable)
 {
 	if (enable == gps_control_is_enabled()) {
@@ -58,11 +55,6 @@ static void set_gps_enable(const bool enable)
 		gps_control_disable();
 	}
 }
-
-
-
-/** @brief Starts gpsT as gpsThread */
-//K_THREAD_DEFINE(gpsThread, STACKSIZE, gpsT, NULL, NULL, NULL,	PRIORITY, 0, K_NO_WAIT);
 
 /** @brief Only called after first fix is acquired. */
 static void gps_trigger_handler(struct device *dev, struct gps_trigger *trigger)
