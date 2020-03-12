@@ -47,7 +47,6 @@ static void uart_data_parse(char *msg_orig){
 	char *pch;
 	char *data;
 	char *tag_mac;
-
     char *msg = strdup(msg_orig);
 
 	pch = strtok(msg, ",");
@@ -88,7 +87,6 @@ static void uart_data_parse(char *msg_orig){
         goto end;
 	}
 
-    
     if(tag_count >= MAX_ADVS_TABLE){
         //printk("Reached limit\n");
     }
@@ -143,9 +141,6 @@ void uart_driver_write(char *data)
 // Prepares UART data for sending to cloud
 void process_uart(void)
 {
-	//if(USE_TEST){
-      //  test_data();
-    //}
     tag_count_buf = tag_count;
     tag_count = 0;
     memcpy(tag_buf, tag, sizeof tag); 

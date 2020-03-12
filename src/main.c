@@ -26,9 +26,7 @@ LOG_MODULE_REGISTER(ruuvi_node, CONFIG_RUUVI_NODE_LOG_LEVEL);
 static atomic_val_t UART_STATUS;
 static atomic_val_t MODEM_STATUS;
 static atomic_val_t GPS_STATUS;
-//static atomic_val_t HTTP_SOCKET_STATUS;
 static atomic_val_t GPS_FIRST_FIX;
-static int conf = 0;
 
 // Sensor data
 static struct gps_data gps_data;
@@ -201,6 +199,7 @@ void main(void)
 
 	LOG_INF("Application started\n");
 
+	//Used for GPS Work Handler
 	k_work_q_start(&application_work_q, application_stack_area,
 		       K_THREAD_STACK_SIZEOF(application_stack_area),
 		       CONFIG_APPLICATION_WORKQUEUE_PRIORITY);
@@ -209,7 +208,6 @@ void main(void)
 	sensors_init();
 
 	while(1){
-		
 		flash_led_four();
 		if(!gps_control_is_active()){
 			socket_toggle(true);
@@ -229,7 +227,6 @@ void main(void)
 					else{
 						err = http_post(msg.buf, msg.len);
 					}
-					
 					free(msg.buf);
 					close_http_socket();
 				}
@@ -242,5 +239,4 @@ void main(void)
 		}
 		k_sleep(K_SECONDS(ADV_POST_INTERVAL-3));
 	}
-
 }

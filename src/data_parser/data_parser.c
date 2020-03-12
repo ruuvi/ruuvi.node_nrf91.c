@@ -114,7 +114,5 @@ int encode_json(struct msg_buf *output, double la, double lo)
 
 end:
     cJSON_Delete(root_obj);
-    //cJSON_Delete(gw_obj);
-    //cJSON_Delete(tags);
     return err;
 }

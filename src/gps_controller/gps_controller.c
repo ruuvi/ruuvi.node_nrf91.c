@@ -31,6 +31,7 @@ static struct {
 
 static atomic_t gps_is_active;
 static atomic_t gps_is_enabled;
+//Added so GPS work handler doesn't start when a message is being POSTED
 static atomic_t socket_active;
 
 static int start(void)
