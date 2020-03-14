@@ -16,6 +16,7 @@
 LOG_MODULE_REGISTER(ruuvi_node, CONFIG_RUUVI_NODE_LOG_LEVEL);
 
 //Veriosn 0.1.1
+
 /* size of stack area used by each thread */
 #define STACKSIZE 1024
 
