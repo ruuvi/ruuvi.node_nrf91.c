@@ -34,6 +34,7 @@ static struct gps_data gps_data;
 double latT = 0;
 double longT = 0;
 static struct modem_param_info modem_param;
+static char gw_imei_buf[GW_IMEI_LEN + 1];
 
 /* Stack definition for application workqueue */
 K_THREAD_STACK_DEFINE(application_stack_area,
@@ -115,12 +116,6 @@ int modem_data_init(void)
 		return err;
 	}
 
-	/*err = modem_info_rsrp_register(modem_rsrp_handler);
-	if (err) {
-		printk("modem_info_rsrp_register, error: %d", err);
-		return err;
-	}*/
-
 	return 0;
 }
 
@@ -147,6 +142,13 @@ static void sensors_init(void)
 	if (err) {
 		LOG_ERR("modem_data_init, error: %d", err);
 	}
+
+	err = modem_info_string_get(MODEM_INFO_IMEI, gw_imei_buf);
+	if (err != GW_IMEI_LEN) {
+		LOG_ERR("modem_info_string_get, error: %d", err);
+	}
+
+	LOG_INF("Device IMEI: %s", log_strdup(gw_imei_buf));
 
 	if(USE_LTE){
 	//Modem LTE Connection
@@ -212,7 +214,7 @@ void main(void)
 					open_post_socket();
 					struct msg_buf msg;
 					process_uart();
-					encode_json(&msg, latT, longT);
+					encode_json(&msg, latT, longT, gw_imei_buf);
 					if(HTTPS_MODE){
 						err = https_post(msg.buf, msg.len);
 					}

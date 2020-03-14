@@ -3,7 +3,7 @@
 #define HTTPS_HOST "webhook.site"
 #define HTTPS_PATH "/fe68a468-6f97-484a-8403-bd592a5eac07"
 #define HTTP_HOST "ptsv2.com"
-#define HTTP_PATH "/t/lysuo-1583639058/post"
+#define HTTP_PATH "/t/ruuvi-node/post"
 #define HTTP_PORT 80
 #define HTTPS_PORT 443
 #define MAX_MTU_SIZE     4096

@@ -11,7 +11,6 @@
 #include "ruuvinode.h"
 
 // Post Buffer
-const char* imeiT = "111000001000001";
 cJSON *tags = NULL;
 
 int encode_tags(struct ble_report *r, int count){
@@ -51,7 +50,7 @@ int encode_tags(struct ble_report *r, int count){
     return err;
 }
 
-int encode_json(struct msg_buf *output, double la, double lo)
+int encode_json(struct msg_buf *output, double la, double lo,  char *imei)
 {
 	int err = 0;
 
@@ -97,7 +96,7 @@ int encode_json(struct msg_buf *output, double la, double lo)
 	cJSON_AddItemToObject(gw_obj, "timestamp", gwTime);
 
     cJSON_AddItemToObject(gw_obj, "tags", tags);
-    cJSON_AddItemToObject(root_obj, imeiT, gw_obj);
+    cJSON_AddItemToObject(root_obj, imei, gw_obj);
 
 	char *temp;
     temp = cJSON_Print(root_obj);

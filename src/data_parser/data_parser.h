@@ -18,4 +18,4 @@ struct msg_buf {
 };
 
 int encode_tags(struct ble_report *r, int count);
-int encode_json(struct msg_buf *output, double la, double lo);
+int encode_json(struct msg_buf *output, double la, double lo, char *imei);

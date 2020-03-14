@@ -15,8 +15,6 @@
 
 #define MAC_LEN 12
 #define ADV_DATA_MAX_LEN 64
-
+#define GW_IMEI_LEN 15
 #define ADV_POST_INTERVAL 20	//10 Seconds
 #define MAX_ADVS_TABLE 20
-
-extern char gw_mac[MAC_LEN+1];
