@@ -15,8 +15,6 @@
 #include <logging/log.h>
 LOG_MODULE_REGISTER(ruuvi_node, CONFIG_RUUVI_NODE_LOG_LEVEL);
 
-//Veriosn 0.1.1
-
 /* size of stack area used by each thread */
 #define STACKSIZE 1024
 
@@ -193,6 +191,7 @@ void main(void)
 	int err;
 
 	LOG_INF("Application started\n");
+	LOG_INF("Version: %s", log_strdup(CONFIG_RUUVI_NODE_APP_VERSION));
 
 	//Used for GPS Work Handler
 	k_work_q_start(&application_work_q, application_stack_area,

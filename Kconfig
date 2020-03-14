@@ -58,6 +58,14 @@ config GPS_SIM_TRIGGER_TIMER_MSEC
 
 endmenu	# GPS
 
+menu "Firmware versioning"
+
+config RUUVI_NODE_APP_VERSION
+	string "The version of the Ruuvi Node firmware"
+	default "0.0.0-development"
+
+endmenu # Firmware versioning
+
 menu "Device and modem"
 
 config POWER_OPTIMIZATION_ENABLE
@@ -77,55 +85,6 @@ config HOLD_TIME_RSRP
 endif
 
 endmenu # Device
-
-menu "Cloud"
-
-config MQTT_KEEPALIVE
-	int
-	default 1200
-
-config CLOUD_BUTTON
-	bool "Enable button sensor"
-	default y
-
-config CLOUD_BUTTON_INPUT
-	int "Enable button sensor"
-	range 1 4 if BOARD_NRF9160_PCA10090NS
-	range 1 1 if BOARD_NRF9160_PCA20035NS
-	default 1
-
-config CLOUD_WAIT_DURATION
-	int "Cloud connection acknowledge wait duration"
-	default 30
-	help
-	    How long the device should wait for a CONNACK
-	    event from the cloud.
-
-config CLOUD_FOTA_APP
-	bool "Enable firmware over-the-air upgrades for application"
-	depends on AWS_FOTA
-	depends on DFU_TARGET_MCUBOOT
-	default y
-
-config CLOUD_FOTA_MODEM
-	bool "Enable firmware over-the-air upgrades for modem"
-	depends on AWS_FOTA
-	depends on DFU_TARGET_MODEM
-	default y
-
-endmenu # Cloud
-
-config GPS_START_AFTER_CLOUD_EVT_READY
-	bool "Automatic start of GPS on CLOUD_EVT_READY event after reset"
-	default n
-	help
-	  Enabling this will make the GPS automatically start after a reset.
-	  Useful when operating as a GPS tracker outdoors for a longer period
-	  of time.
-
-config ASSET_TRACKER_WATCHDOG_TIMEOUT_MSEC
-	int "Watchdog timeout in milliseconds"
-	default 10000
 
 config USE_AT_HOST
 	bool "Enable AT commands"
