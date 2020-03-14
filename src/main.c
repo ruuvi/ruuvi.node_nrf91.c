@@ -146,7 +146,6 @@ static void sensors_init(void)
 	if (err != GW_IMEI_LEN) {
 		LOG_ERR("modem_info_string_get, error: %d", err);
 	}
-
 	LOG_INF("Device IMEI: %s", log_strdup(gw_imei_buf));
 
 	if(USE_LTE){
