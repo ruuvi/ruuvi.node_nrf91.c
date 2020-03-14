@@ -84,7 +84,7 @@ jobs:
         run: |
           npm ci
           export NEXT_VERSION=`node ${GITHUB_WORKSPACE}/ruuvi.node_nrf91.c/.github/workflows/get-next-version.js`
-          echo "CONFIG_RUUVI_NODE_APP_VERSION=\"$NEXT_VERSION\"" >> ${GITHUB_WORKSPACE}/firmware/prj.conf
+          echo "CONFIG_RUUVI_NODE_APP_VERSION=\"$NEXT_VERSION\"" >> ${GITHUB_WORKSPACE}/ruuvi.node_nrf91.c/prj.conf
 
       - name: Build
         run: |
