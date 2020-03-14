@@ -83,7 +83,6 @@ static void gps_trigger_handler(struct device *dev, struct gps_trigger *trigger)
 	else{
 		LOG_ERR("GPS Update Failure\n");
 	}
-
 	gps_control_stop(K_NO_WAIT);
 }
 
