@@ -3,6 +3,7 @@
 #include <string.h>
 #include <drivers/gps.h>	
 #include <modem_info.h>
+#include <time.h>
 
 #include "led_controller.h"
 #include "uart_controller.h"
@@ -34,6 +35,7 @@ double latT = 0;
 double longT = 0;
 static struct modem_param_info modem_param;
 static char gw_imei_buf[GW_IMEI_LEN + 1];
+static char modem_fw_buf[MODEM_FW_LEN + 1];
 
 /* Stack definition for application workqueue */
 K_THREAD_STACK_DEFINE(application_stack_area,
@@ -144,9 +146,16 @@ static void sensors_init(void)
 
 	err = modem_info_string_get(MODEM_INFO_IMEI, gw_imei_buf);
 	if (err != GW_IMEI_LEN) {
-		LOG_ERR("modem_info_string_get, error: %d", err);
+		LOG_ERR("modem_info_string_get(IMEI), error: %d", err);
 	}
 	LOG_INF("Device IMEI: %s", log_strdup(gw_imei_buf));
+
+	err = modem_info_string_get(MODEM_INFO_FW_VERSION, modem_fw_buf);
+	if (err != MODEM_FW_LEN) {
+		LOG_ERR("modem_info_string_get(MODEM FW), error: %d", err);
+	}
+	LOG_INF("Modem FW Version : %s", log_strdup(modem_fw_buf));
+	
 
 	if(USE_LTE){
 	//Modem LTE Connection
@@ -200,6 +209,7 @@ void main(void)
 	// Initilise the peripherals
 	sensors_init();
 
+
 	while(1){
 		flash_led_four();
 		if(!gps_control_is_active()){
@@ -213,6 +223,7 @@ void main(void)
 					open_post_socket();
 					struct msg_buf msg;
 					process_uart();
+					k_sleep(K_SECONDS(1));
 					encode_json(&msg, latT, longT, gw_imei_buf);
 					if(HTTPS_MODE){
 						err = https_post(msg.buf, msg.len);
@@ -230,6 +241,6 @@ void main(void)
 			k_sleep(K_SECONDS(2));
 			socket_toggle(false);
 		}
-		k_sleep(K_SECONDS(ADV_POST_INTERVAL-3));
+		k_sleep(K_SECONDS(ADV_POST_INTERVAL-4));
 	}
 }

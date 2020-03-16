@@ -8,10 +8,13 @@
 #include "cJSON.h"
 #include "cJSON_os.h"
 
+#include "modem_controller.h"
 #include "ruuvinode.h"
 
 // Post Buffer
 cJSON *tags = NULL;
+time_t json_ts_buf;
+u32_t json_ts_buf_tk;
 
 int encode_tags(struct ble_report *r, int count){
     int err = 0;
@@ -53,6 +56,13 @@ int encode_tags(struct ble_report *r, int count){
 int encode_json(struct msg_buf *output, double la, double lo,  char *imei)
 {
 	int err = 0;
+    u32_t now;
+    time_t now_ts;
+
+    now = k_uptime_get_32();
+    now = now - json_ts_buf_tk;
+    now = now / 1000;
+    now_ts = json_ts_buf + now;
 
 	cJSON *root_obj = cJSON_CreateObject();
 	if (root_obj == NULL){
@@ -86,7 +96,7 @@ int encode_json(struct msg_buf *output, double la, double lo,  char *imei)
     }
 	cJSON_AddItemToObject(gw_obj, "longitude", gwLong);
 	
-    cJSON *gwTime = cJSON_CreateNumber(k_cycle_get_32());
+    cJSON *gwTime = cJSON_CreateNumber(now_ts);
     if (gwTime == NULL)
     {
 		printk("Error: Creating gwTime");
@@ -114,4 +124,10 @@ int encode_json(struct msg_buf *output, double la, double lo,  char *imei)
 end:
     cJSON_Delete(root_obj);
     return err;
+}
+
+time_t json_prepare_time(void){
+    json_ts_buf = modem_ts();
+    json_ts_buf_tk = k_uptime_get_32();
+    return json_ts_buf;
 }

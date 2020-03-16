@@ -16,5 +16,7 @@
 #define MAC_LEN 12
 #define ADV_DATA_MAX_LEN 64
 #define GW_IMEI_LEN 15
-#define ADV_POST_INTERVAL 20	//10 Seconds
-#define MAX_ADVS_TABLE 20
+#define MODEM_FW_LEN 17
+#define MODEM_TIME_LEN 20
+#define ADV_POST_INTERVAL 20	//in Seconds
+#define MAX_ADVS_TABLE 10
