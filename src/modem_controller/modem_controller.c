@@ -1,13 +1,7 @@
 #include <zephyr.h>
 #include <lte_lc.h>
 #include <net/bsdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <modem_info.h>
-#include <time.h>
 
-#include "ruuvinode.h"
 #include "modem_controller.h"
 
 void setup_psm(void)
@@ -90,43 +84,4 @@ exit:
 	printk("LTE link could not be established, or maintained\n");
 
 	return 0;
-}
-
-time_t modem_ts(void){
-	int err;
-	static char ts_buf[MODEM_TIME_LEN + 1];
-	struct tm t;
-	time_t epoch;
-	int tz;
-	char *pch;
-	err = modem_info_string_get(MODEM_INFO_DATE_TIME, ts_buf);
-	if (err != MODEM_TIME_LEN) {
-		printk("modem_info_string_get(MODEM time), error: %d", err);
-		return -1;
-	}
-	
-    char *msg = strdup(ts_buf);
-	
-	pch = strtok(msg, "/,:+");
-	t.tm_year = atoi(pch);
-	t.tm_year = t.tm_year + 2000 -1900;
-	pch = strtok(NULL, "/,:+");
-	t.tm_mon = atoi(pch);
-	t.tm_mon = t.tm_mon -1;
-	pch = strtok(NULL, "/,:+");
-	t.tm_mday = atoi(pch);
-	pch = strtok(NULL, "/,:+");
-	t.tm_hour = atoi(pch);
-	pch = strtok(NULL, "/,:+");
-	t.tm_min = atoi(pch);
-	pch = strtok(NULL, "/,:+");
-    t.tm_sec = atoi(pch);
-	pch = strtok(NULL, "/,:+");
-	tz = atoi(pch);
-	t.tm_isdst = -1;
-	epoch = mktime(&t);
-	memset(ts_buf, 0, MODEM_TIME_LEN + 1);
-	free(msg);
-	free(pch);
-	return epoch;
 }

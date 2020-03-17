@@ -9,5 +9,3 @@ enum modem_actions {
 void setup_psm(void);
 
 int lte_connect(enum modem_actions action);
-
-time_t modem_ts(void);

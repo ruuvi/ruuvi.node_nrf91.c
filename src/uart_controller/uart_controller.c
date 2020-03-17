@@ -9,7 +9,7 @@
 
 #include "data_parser.h"
 #include "uart_controller.h"
-#include "modem_controller.h"
+#include "time_handler.h"
 #include "ruuvinode.h"
 
 //Define the device
@@ -35,8 +35,6 @@ char rx_buf[UART_RX_BUF_SIZE];
 
 struct ble_report tag[MAX_ADVS_TABLE];
 struct ble_report tag_buf[MAX_ADVS_TABLE];
-time_t ts_buf;
-u32_t ts_buf_tk;
 int tag_count;
 int tag_count_buf;
 
@@ -51,8 +49,6 @@ static void uart_data_parse(char *msg_orig){
 	char *data;
 	char *tag_mac;
     char *msg = strdup(msg_orig);
-    u32_t now;
-    time_t now_ts;
 
 	pch = strtok(msg, ",");
 	while (pch != NULL && i < 4) {
@@ -92,10 +88,6 @@ static void uart_data_parse(char *msg_orig){
         goto end;
 	}
 
-    now = k_uptime_get_32();
-    now = now - ts_buf_tk;
-    now = now / 1000;
-    now_ts = ts_buf + now;
     if(tag_count >= MAX_ADVS_TABLE){
         //printk("Reached limit\n");
     }
@@ -104,7 +96,7 @@ static void uart_data_parse(char *msg_orig){
     tag[tag_count].rssi = rssi;
     strcpy(tag[tag_count].data, data);
 
-    tag[tag_count].timestamp = now_ts;
+    tag[tag_count].timestamp = get_ts();
     ++tag_count;
 	}
 end:
@@ -151,8 +143,6 @@ void uart_driver_write(char *data)
 // Prepares UART data for sending to cloud
 void process_uart(void)
 {
-    ts_buf = json_prepare_time();
-    ts_buf_tk = k_uptime_get_32();
     tag_count_buf = tag_count;
     tag_count = 0;
     memcpy(tag_buf, tag, sizeof tag); 
@@ -173,8 +163,6 @@ u8_t uart_init()
         uart_irq_callback_set(uart_dev, uart_fifo_callback);
         uart_irq_rx_enable(uart_dev);
         printk("UART device loaded.\n");
-        ts_buf = modem_ts();
-        ts_buf_tk = k_uptime_get_32();
         return 0;
     }
     

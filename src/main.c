@@ -12,6 +12,7 @@
 #include "http_controller.h"
 #include "ruuvinode.h"
 #include "data_parser.h"
+#include "time_handler.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(ruuvi_node, CONFIG_RUUVI_NODE_LOG_LEVEL);
@@ -80,7 +81,16 @@ static void gps_trigger_handler(struct device *dev, struct gps_trigger *trigger)
 		atomic_set(&GPS_FIRST_FIX, 1);
 		longT = gps_data.pvt.longitude;
 		latT = gps_data.pvt.latitude;
+		struct tm gps_time;
+		gps_time.tm_year = gps_data.pvt.datetime.year - 1900;
+   		gps_time.tm_mon = gps_data.pvt.datetime.month -1;
+		gps_time.tm_mday = gps_data.pvt.datetime.day;
+		gps_time.tm_hour = gps_data.pvt.datetime.hour;
+		gps_time.tm_min = gps_data.pvt.datetime.minute;
+		gps_time.tm_sec = gps_data.pvt.datetime.seconds;
+		gps_time.tm_isdst = -1;
 		LOG_INF("GPS Coordinate Updated\n");
+		update_ts_gps(&gps_time);
 	}
 	else{
 		LOG_ERR("GPS Update Failure\n");
@@ -155,7 +165,6 @@ static void sensors_init(void)
 		LOG_ERR("modem_info_string_get(MODEM FW), error: %d", err);
 	}
 	LOG_INF("Modem FW Version : %s", log_strdup(modem_fw_buf));
-	
 
 	if(USE_LTE){
 	//Modem LTE Connection
@@ -169,6 +178,10 @@ static void sensors_init(void)
 			setup_psm();
 		}
 	}
+
+	k_sleep(K_SECONDS(2));
+	update_ts_modem();
+	k_sleep(K_SECONDS(2));
 
 	//GPS
 	if(USE_GPS){
@@ -240,6 +253,9 @@ void main(void)
 			}
 			k_sleep(K_SECONDS(2));
 			socket_toggle(false);
+			if(!GPS_FIRST_FIX){
+				update_ts_modem();
+			}
 		}
 		k_sleep(K_SECONDS(ADV_POST_INTERVAL-4));
 	}
