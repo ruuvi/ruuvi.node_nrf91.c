@@ -51,9 +51,9 @@
               "label": "Pre-build HEX file for PCA10090 / nRF9160 DK (${nextRelease.gitTag}) NB-IoT"
             },
             {
-              "path": "/home/runner/work/ruuvi.node_nrf91.c/ruuvi.node_nrf91.c/ruuvi-node-nrf9160_pca10090ns-app_update.bin",
-              "name": "ruuvi-node-PCA10090-nRF9160DK-${nextRelease.gitTag}-app_update.bin",
-              "label": "App update file for PCA10090 / nRF9160 DK (${nextRelease.gitTag}) NB-IoT"
+              "path": "/home/runner/work/ruuvi.node_nrf91.c/ruuvi.node_nrf91.c/ruuvi-node-nrf9160_pca10090ns_debug.hex",
+              "name": "ruuvi-node-PCA10090-nRF9160DK-${nextRelease.gitTag}.hex",
+              "label": "[w. DEBUGGING]Pre-build HEX file for PCA10090 / nRF9160 DK (${nextRelease.gitTag}) NB-IoT"
             },
             {
               "path": "/home/runner/work/ruuvi.node_nrf91.c/ruuvi.node_nrf91.c/ruuvi-node-nrf9160_pca10090ns-ltem.hex",
@@ -61,9 +61,9 @@
               "label": "Pre-build HEX file for PCA10090 / nRF9160 DK (${nextRelease.gitTag}) LTE-m"
             },
             {
-              "path": "/home/runner/work/ruuvi.node_nrf91.c/ruuvi.node_nrf91.c/ruuvi-node-nrf9160_pca10090ns-ltem-app_update.bin",
-              "name": "ruuvi-node-PCA10090-nRF9160DK-${nextRelease.gitTag}-ltem-app_update.bin",
-              "label": "App update file for PCA10090 / nRF9160 DK (${nextRelease.gitTag}) LTE-m"
+              "path": "/home/runner/work/ruuvi.node_nrf91.c/ruuvi.node_nrf91.c/ruuvi-node-nrf9160_pca10090ns-ltem_debug.hex",
+              "name": "ruuvi-node-PCA10090-nRF9160DK-${nextRelease.gitTag}-ltem.hex",
+              "label": "[w. DEBUGGING]Pre-build HEX file for PCA10090 / nRF9160 DK (${nextRelease.gitTag}) LTE-m"
             }
           ]
         }
