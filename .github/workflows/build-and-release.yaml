@@ -101,11 +101,6 @@ jobs:
           mv -v ${GITHUB_WORKSPACE}/ruuvi.node_nrf91.c/build/zephyr/merged.hex ${GITHUB_WORKSPACE}/ruuvi-node-nrf9160_pca10090ns_debug.hex
           # NB-IoT no degub
           sed -i s/CONFIG_UART_CONSOLE=y/CONFIG_UART_CONSOLE=n/ ${GITHUB_WORKSPACE}/ruuvi.node_nrf91.c/prj.conf
-          sed -i s/CONFIG_CONSOLE_SUBSYS=y/CONFIG_CONSOLE_SUBSYS=n/ ${GITHUB_WORKSPACE}/ruuvi.node_nrf91.c/prj.conf
-          sed -i s/CONFIG_CONSOLE_HANDLER=y/CONFIG_CONSOLE_HANDLER=n/ ${GITHUB_WORKSPACE}/ruuvi.node_nrf91.c/prj.conf
-          sed -i s/CONFIG_CONSOLE_GETCHAR=y/CONFIG_CONSOLE_GETCHAR=n/ ${GITHUB_WORKSPACE}/ruuvi.node_nrf91.c/prj.conf
-          sed -i s/CONFIG_LOG=y/CONFIG_LOG=n/ ${GITHUB_WORKSPACE}/ruuvi.node_nrf91.c/prj.conf
-          sed -i s/CONFIG_LOG_IMMEDIATE=y/CONFIG_LOG_IMMEDIATE=n/ ${GITHUB_WORKSPACE}/ruuvi.node_nrf91.c/prj.conf
           west build -p auto -b nrf9160_pca10090ns
           mv -v ${GITHUB_WORKSPACE}/ruuvi.node_nrf91.c/build/zephyr/merged.hex ${GITHUB_WORKSPACE}/ruuvi-node-nrf9160_pca10090ns.hex
           # LTE-m no debug
@@ -115,11 +110,6 @@ jobs:
           mv -v ${GITHUB_WORKSPACE}/ruuvi.node_nrf91.c/build/zephyr/merged.hex ${GITHUB_WORKSPACE}/ruuvi-node-nrf9160_pca10090ns-ltem.hex
           #LTE-M
           sed -i s/CONFIG_UART_CONSOLE=n/CONFIG_UART_CONSOLE=y/ ${GITHUB_WORKSPACE}/ruuvi.node_nrf91.c/prj.conf
-          sed -i s/CONFIG_CONSOLE_SUBSYS=n/CONFIG_CONSOLE_SUBSYS=y/ ${GITHUB_WORKSPACE}/ruuvi.node_nrf91.c/prj.conf
-          sed -i s/CONFIG_CONSOLE_HANDLER=n/CONFIG_CONSOLE_HANDLER=y/ ${GITHUB_WORKSPACE}/ruuvi.node_nrf91.c/prj.conf
-          sed -i s/CONFIG_CONSOLE_GETCHAR=n/CONFIG_CONSOLE_GETCHAR=y/ ${GITHUB_WORKSPACE}/ruuvi.node_nrf91.c/prj.conf
-          sed -i s/CONFIG_LOG=n/CONFIG_LOG=y/ ${GITHUB_WORKSPACE}/ruuvi.node_nrf91.c/prj.conf
-          sed -i s/CONFIG_LOG_IMMEDIATE=n/CONFIG_LOG_IMMEDIATE=y/ ${GITHUB_WORKSPACE}/ruuvi.node_nrf91.c/prj.conf
           west build -p auto -b nrf9160_pca10090ns
           mv -v ${GITHUB_WORKSPACE}/ruuvi.node_nrf91.c/build/zephyr/merged.hex ${GITHUB_WORKSPACE}/ruuvi-node-nrf9160_pca10090ns-ltem_debug.hex
 
