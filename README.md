@@ -3,14 +3,24 @@ nRF91 project for Ruuvi Node
 
 # Setting up the toolchain
 Nordic Semiconductor keeps up-to-date instructions on how to setup the toolchain for 
-Linux, Mac OSX and Windows. Download [nRF Connect for Desktop](https://www.nordicsemi.com/Software-and-tools/Development-Tools/nRF-Connect-for-desktop) and follow getting started -plugin instructions. 
+Linux, Mac OSX and Windows. Instruction can be found at: https://developer.nordicsemi.com/nRF_Connect_SDK/doc/1.2.0/nrf/getting_started.html.
+
+Ensure that NCS version 1.2.0 is used as Ruuvi Node is confirmed working with that.
+
+When cloning the repo ensure that you run the following command to clone v1.2.0:
+
+```bash
+west init -m https://github.com/NordicPlayground/fw-nrfconnect-nrf --mr v1.2.0
+```
 
 # Cloning and building
+This assumes that you are running linux and followed the instructions found at the link above and cloned NRF Conect SDK into ncs.
+
 ```bash
+cd ~/ncs/nrf/applications
 mkdir ruuvi_node_sdk && cd ruuvi_node_sdk
-west init -m https://github.com/ruuvi/ruuvi.node_nrf91.c
-west update
-cd ruuvi_node
+git clone https://github.com/${GITHUB_REPOSITORY} ruuvi.node_nrf91.c
+cd ruuvi.node_nrf91.c
 west build
 ```
 
