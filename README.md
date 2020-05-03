@@ -19,7 +19,7 @@ This assumes that you are running linux and followed the instructions found at t
 ```bash
 cd ~/ncs/nrf/applications
 mkdir ruuvi_node_sdk && cd ruuvi_node_sdk
-git clone https://github.com/${GITHUB_REPOSITORY} ruuvi.node_nrf91.c
+git clone https://github.com/ruuvi/ruuvi.node_nrf91.c.git ruuvi.node_nrf91.c
 cd ruuvi.node_nrf91.c
 west build
 ```
