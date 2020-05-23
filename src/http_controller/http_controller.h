@@ -1,7 +1,7 @@
 #include <zephyr.h>
 
 #define HTTPS_HOST "webhook.site"
-#define HTTPS_PATH "/fe68a468-6f97-484a-8403-bd592a5eac07"
+#define HTTPS_PATH "/bfc19bc5-31b5-48b0-9627-953cfeee1915"
 #define HTTP_HOST "ptsv2.com"
 #define HTTP_PATH "/t/ruuvi-node/post"
 #define HTTP_PORT 80

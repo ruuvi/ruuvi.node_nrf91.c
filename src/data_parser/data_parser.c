@@ -47,7 +47,6 @@ int encode_tags(struct ble_report *r, int count){
 
         cJSON_AddItemToObject(tags, r[index].tag_mac, tag);
     }
-    printk("Tags: %d\n", index);
     return err;
 }
 
