@@ -2,14 +2,27 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <modem_info.h>
+#include <modem/modem_info.h>
 #include <time.h>
 
 #include "ruuvinode.h"
 #include "time_handler.h"
 
-time_t epoch;
-u32_t epoch_tk;
+#include <logging/log.h>
+LOG_MODULE_REGISTER(time_handler, CONFIG_RUUVI_NODE_LOG_LEVEL);
+
+time_t epoch = 0;
+u32_t epoch_tk = 0;
+
+time_t get_ts(void){
+    time_t ts;
+    u32_t now;
+    now = k_uptime_get_32();
+    now = now - epoch_tk;
+    now = now / 1000;
+    ts = epoch + now;
+    return ts;
+}
 
 int update_ts_modem(void){
 	int err;
@@ -17,9 +30,9 @@ int update_ts_modem(void){
 	struct tm t;
 	int tz;
 	char *pch;
-	err = modem_info_string_get(MODEM_INFO_DATE_TIME, ts_buf);
+	err = modem_info_string_get(MODEM_INFO_DATE_TIME, ts_buf, sizeof(ts_buf));
 	if (err != MODEM_TIME_LEN) {
-		printk("modem_info_string_get(MODEM time), error: %d", err);
+		LOG_ERR("modem_info_string_get(MODEM time), error: %d", err);
 		return -1;
 	}
     epoch_tk = k_uptime_get_32();
@@ -47,25 +60,15 @@ int update_ts_modem(void){
 	memset(ts_buf, 0, MODEM_TIME_LEN + 1);
 	free(msg);
 	free(pch);
-    //printk("TS updated by Modem\n");
+    LOG_INF("TS updated by Modem: %d", get_ts());
 	return 0;
 }
 
 void update_ts_gps(struct tm *g){
     epoch_tk = k_uptime_get_32();
     epoch = mktime(g);
-    //printk("GPS epoch: %lld\n", epoch);
-    //printk("TS updated by GPS\n");
+    LOG_INF("GPS epoch: %lld\n", epoch);
+    LOG_INF("TS updated by GPS\n");
     return;
 
-}
-
-time_t get_ts(void){
-    time_t ts;
-    u32_t now;
-    now = k_uptime_get_32();
-    now = now - epoch_tk;
-    now = now / 1000;
-    ts = epoch + now;
-    return ts;
 }

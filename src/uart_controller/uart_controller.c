@@ -156,13 +156,11 @@ u8_t uart_init()
 {
 	uart_dev = device_get_binding(BLE_UART);
     if (!uart_dev) {
-        printk("Error: Opening UART device");
         return 1;
     }
     else{
         uart_irq_callback_set(uart_dev, uart_fifo_callback);
         uart_irq_rx_enable(uart_dev);
-        printk("UART device loaded.\n");
         return 0;
     }
     

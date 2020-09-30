@@ -1,262 +1,440 @@
 #include <zephyr.h>
+#include <kernel_structs.h>
 #include <stdio.h>
 #include <string.h>
-#include <drivers/gps.h>	
-#include <modem_info.h>
+#include <drivers/gps.h>
 #include <time.h>
+#include <console/console.h>
+#include <power/reboot.h>
+#include <logging/log_ctrl.h>
+
+#if defined(CONFIG_BSD_LIBRARY)
+#include <modem/bsdlib.h>
+#include <bsd.h>
+#include <modem/lte_lc.h>
+#include <modem/modem_info.h>
+#endif /* CONFIG_BSD_LIBRARY */
 
 #include "led_controller.h"
 #include "uart_controller.h"
-#include "modem_controller.h"
 #include "gps_controller.h"
 #include "http_controller.h"
 #include "ruuvinode.h"
 #include "data_parser.h"
 #include "time_handler.h"
+#include "watchdog.h"
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(ruuvi_node, CONFIG_RUUVI_NODE_LOG_LEVEL);
 
-/* size of stack area used by each thread */
-#define STACKSIZE 1024
-
 /* scheduling priority used by each thread */
 #define PRIORITY 7
-#define SLEEP_TIME	1000
 
-// Status information
-static atomic_val_t UART_STATUS;
-static atomic_val_t MODEM_STATUS;
-static atomic_val_t GPS_STATUS;
-static atomic_val_t GPS_FIRST_FIX;
-
-// Sensor data
-static struct gps_data gps_data;
-double latT = 0;
-double longT = 0;
-static struct modem_param_info modem_param;
-static char gw_imei_buf[GW_IMEI_LEN + 1];
-static char modem_fw_buf[MODEM_FW_LEN + 1];
+#if CONFIG_MODEM_INFO
+struct rsrp_data {
+	u16_t value;
+	u16_t offset;
+};
+static struct k_delayed_work rsrp_work;
+static struct rsrp_data rsrp = {
+	.value = 0,
+	.offset = MODEM_INFO_RSRP_OFFSET_VAL,
+};
+#endif /* CONFIG_MODEM_INFO */
 
 /* Stack definition for application workqueue */
 K_THREAD_STACK_DEFINE(application_stack_area,
 		      CONFIG_APPLICATION_WORKQUEUE_STACK_SIZE);
 static struct k_work_q application_work_q;
 
+// Sensor data
+static atomic_val_t http_post_active;
+static s64_t gps_last_active_time;
+static time_t gps_last_update_time;
+double latT = 0;
+double longT = 0;
+static struct modem_param_info modem_param;
+static char gw_imei_buf[GW_IMEI_LEN + 1];
+static char modem_fw_buf[MODEM_FW_LEN + 1];
+
+static void set_gps_enable(const bool enable);
+static void sensors_init(void);
+static void work_init(void);
+static bool data_send_enabled(void);
+
+static void shutdown_modem(void)
+{
+#if defined(CONFIG_LTE_LINK_CONTROL)
+	/* Turn off and shutdown modem */
+	LOG_ERR("LTE link disconnect");
+	int err = lte_lc_power_off();
+
+	if (err) {
+		LOG_ERR("lte_lc_power_off failed: %d", err);
+	}
+#endif /* CONFIG_LTE_LINK_CONTROL */
+#if defined(CONFIG_BSD_LIBRARY)
+	LOG_ERR("Shutdown modem");
+	bsdlib_shutdown();
+#endif
+}
+
+enum error_type {
+	ERROR_CLOUD,
+	ERROR_BSD_RECOVERABLE,
+	ERROR_LTE_LC,
+	ERROR_SYSTEM_FAULT
+};
+
+void error_handler(enum error_type err_type, int err_code)
+{
+	atomic_set(&http_post_active, 0);
+	if (err_type == ERROR_CLOUD) {
+		shutdown_modem();
+	}
+
+#if !defined(CONFIG_DEBUG) && defined(CONFIG_REBOOT)
+	LOG_PANIC();
+	sys_reboot(0);
+#else
+	switch (err_type) {
+	case ERROR_BSD_RECOVERABLE:
+		LOG_ERR("Error of type ERROR_BSD_RECOVERABLE: %d", err_code);
+	break;
+
+		LOG_ERR("Unknown error type: %d, code: %d",
+			err_type, err_code);
+	break;
+	}
+
+	while (true) {
+		k_cpu_idle();
+	}
+#endif /* CONFIG_DEBUG */
+}
+
+void k_sys_fatal_error_handler(unsigned int reason,
+			       const z_arch_esf_t *esf)
+{
+	ARG_UNUSED(esf);
+
+	LOG_PANIC();
+	LOG_ERR("Running main.c error handler");
+	error_handler(ERROR_SYSTEM_FAULT, reason);
+	CODE_UNREACHABLE;
+}
+
+/**@brief Recoverable BSD library error. */
+void bsd_recoverable_error_handler(uint32_t err)
+{
+	error_handler(ERROR_BSD_RECOVERABLE, (int)err);
+}
+
+static bool data_send_enabled(void)
+{
+	return (atomic_get(&http_post_active) ==
+		   1);
+}
+
 static void set_gps_enable(const bool enable)
 {
-	if (enable == gps_control_is_enabled()) {
-		return;
-	}
+	bool changing = (enable != gps_control_is_enabled());
 
-	if (enable) {
-		LOG_INF("Starting GPS");
-		gps_control_enable();
-		gps_control_start(K_SECONDS(1));
-
-	} else {
-		LOG_INF("Stopping GPS");
-		gps_control_disable();
+	if (changing) {
+		if (enable) {
+			LOG_INF("Starting GPS");
+		} else {
+			LOG_INF("Stopping GPS");
+			gps_control_stop(0);
+		}
 	}
 }
 
-/** @brief Only called after first fix is acquired. */
-static void gps_trigger_handler(struct device *dev, struct gps_trigger *trigger)
+static void gps_handler(struct device *dev, struct gps_event *evt)
 {
-	LOG_INF("Entered GPS Trigger Handler!\n");
-	static u32_t fix_count;
+	gps_last_active_time = k_uptime_get();
+	switch (evt->type) {
+	case GPS_EVT_SEARCH_STARTED:
+		LOG_INF("GPS_EVT_SEARCH_STARTED");
+		gps_control_set_active(true);
+		break;
+	case GPS_EVT_SEARCH_STOPPED:
+		LOG_INF("GPS_EVT_SEARCH_STOPPED");
+		gps_control_set_active(false);
+		break;
+	case GPS_EVT_SEARCH_TIMEOUT:
+		LOG_INF("GPS_EVT_SEARCH_TIMEOUT");
+		gps_control_set_active(false);
+		LOG_INF("GPS will be attempted again in %d seconds",
+			gps_control_get_gps_reporting_interval());
+		break;
+	case GPS_EVT_PVT:
+		/* Don't spam logs */
+		break;
+	case GPS_EVT_PVT_FIX:
+		LOG_INF("GPS_EVT_PVT_FIX");
+		gps_last_update_time = get_ts();
+		latT = evt->pvt.latitude;
+		longT = evt->pvt.longitude;
+		//LOG_INF("Latitude: %d, Longitude: %d", latT, longT);
+		gps_control_set_active(false);
+		LOG_INF("GPS will be started in %d seconds",
+			gps_control_get_gps_reporting_interval());
+		gps_control_stop(0);
+		break;
+	case GPS_EVT_NMEA:
+		/* Don't spam logs */
+		break;
+	case GPS_EVT_NMEA_FIX:
+		LOG_INF("Position fix with NMEA data");
+		break;
+	case GPS_EVT_OPERATION_BLOCKED:
+		LOG_INF("GPS_EVT_OPERATION_BLOCKED");
+		break;
+	case GPS_EVT_OPERATION_UNBLOCKED:
+		LOG_INF("GPS_EVT_OPERATION_UNBLOCKED");
+		break;
+	case GPS_EVT_ERROR:
+		LOG_INF("GPS_EVT_ERROR\n");
+		break;
+	default:
+		break;
+	}
+}
 
-	ARG_UNUSED(trigger);
+/**@brief Configures modem to provide LTE link. Blocks until link is
+ * successfully established.
+ */
+static int modem_configure(void)
+{
+#if defined(CONFIG_BSD_LIBRARY)
+	if (IS_ENABLED(CONFIG_LTE_AUTO_INIT_AND_CONNECT)) {
+		/* Do nothing, modem is already turned on */
+		/* and connected */
+		goto connected;
+	}
 
-	if (++fix_count < CONFIG_GPS_CONTROL_FIX_COUNT) {
+	LOG_INF("Connecting to LTE network.");
+	LOG_INF("This may take several minutes.");
+
+#if defined(CONFIG_LWM2M_CARRIER)
+	/* Wait for the LWM2M carrier library to configure the */
+	/* modem and set up the LTE connection. */
+	k_sem_take(&lte_connected, K_FOREVER);
+#else /* defined(CONFIG_LWM2M_CARRIER) */
+	int err = lte_lc_init_and_connect();
+	if (err) {
+		LOG_ERR("LTE link could not be established.");
+		return err;
+	}
+#endif /* defined(CONFIG_LWM2M_CARRIER) */
+
+connected:
+	LOG_INF("Connected to LTE network.");
+
+#endif /* defined(CONFIG_BSD_LIBRARY) */
+	return 0;
+}
+
+#if CONFIG_MODEM_INFO
+/**@brief Callback handler for LTE RSRP data. */
+static void modem_rsrp_handler(char rsrp_value)
+{
+	/* RSRP raw values that represent actual signal strength are
+	 * 0 through 97 (per "nRF91 AT Commands" v1.1). If the received value
+	 * falls outside this range, we should not send the value.
+	 */
+	if (rsrp_value > 97) {
 		return;
 	}
 
-	fix_count = 0;
+	rsrp.value = rsrp_value;
+
+	/* Only send the RSRP if transmission is not already scheduled.
+	 * Checking CONFIG_HOLD_TIME_RSRP gives the compiler a shortcut.
+	 */
+	if (CONFIG_HOLD_TIME_RSRP == 0 ||
+	    k_delayed_work_remaining_get(&rsrp_work) == 0) {
+		k_delayed_work_submit_to_queue(&application_work_q, &rsrp_work,
+					       K_NO_WAIT);
+	}
+}
+
+/**@brief Publish RSRP data to the cloud. */
+static void modem_rsrp_data_print(struct k_work *work)
+{
+	char buf[CONFIG_MODEM_INFO_BUFFER_SIZE] = {0};
+	static s32_t rsrp_prev; /* RSRP value last sent to cloud */
+	s32_t rsrp_current;
+	size_t len;
+
+	if (atomic_get(&http_post_active) == 0){
+		/* The RSRP value is copied locally to avoid any race */
+		rsrp_current = rsrp.value - rsrp.offset;
+
+		if (rsrp_current == rsrp_prev) {
+			return;
+		}
+
+		len = snprintf(buf, CONFIG_MODEM_INFO_BUFFER_SIZE,
+				"%d", rsrp_current);
+
+		LOG_INF("RSRP: %d", rsrp_current);
+
+		rsrp_prev = rsrp_current;
+
+		if (CONFIG_HOLD_TIME_RSRP > 0) {
+			k_delayed_work_submit_to_queue(&application_work_q, &rsrp_work,
+							K_SECONDS(CONFIG_HOLD_TIME_RSRP));
+		}
+	}
 
 	
-	gps_sample_fetch(dev);
-	int err = gps_channel_get(dev, GPS_CHAN_PVT, &gps_data);
-	if(!err){
-		atomic_set(&GPS_FIRST_FIX, 1);
-		longT = gps_data.pvt.longitude;
-		latT = gps_data.pvt.latitude;
-		struct tm gps_time;
-		gps_time.tm_year = gps_data.pvt.datetime.year - 1900;
-   		gps_time.tm_mon = gps_data.pvt.datetime.month -1;
-		gps_time.tm_mday = gps_data.pvt.datetime.day;
-		gps_time.tm_hour = gps_data.pvt.datetime.hour;
-		gps_time.tm_min = gps_data.pvt.datetime.minute;
-		gps_time.tm_sec = gps_data.pvt.datetime.seconds;
-		gps_time.tm_isdst = -1;
-		LOG_INF("GPS Coordinate Updated\n");
-		update_ts_gps(&gps_time);
-	}
-	else{
-		LOG_ERR("GPS Update Failure\n");
-	}
-	gps_control_stop(K_NO_WAIT);
 }
+#endif
 
-int modem_data_get(void)
+
+#if CONFIG_MODEM_INFO
+/**brief Initialize LTE status containers. */
+static void modem_data_init(void)
 {
 	int err;
-
-	err = modem_info_params_get(&modem_param);
-	if (err) {
-		printk("Error getting modem_info: %d", err);
-		return err;
-	}
-
-	return 0;
-}
-
-int modem_data_init(void)
-{
-	int err;
-
 	err = modem_info_init();
 	if (err) {
-		printk("modem_info_init, error: %d", err);
-		return err;
+		LOG_ERR("Modem info could not be established: %d", err);
+		return;
 	}
 
-	err = modem_info_params_init(&modem_param);
-	if (err) {
-		printk("modem_info_params_init, error: %d", err);
-		return err;
-	}
+	modem_info_params_init(&modem_param);
 
-	return 0;
+	modem_info_rsrp_register(modem_rsrp_handler);
+}
+#endif /* CONFIG_MODEM_INFO */
+
+/**@brief Initializes and submits delayed work. */
+static void work_init(void)
+{
+#if CONFIG_MODEM_INFO
+	k_delayed_work_init(&rsrp_work, modem_rsrp_data_print);
+#endif /* CONFIG_MODEM_INFO */
 }
 
 /** @brief Initialises the peripherals that are used by the application. */
 static void sensors_init(void)
 {
-	atomic_set(&UART_STATUS, 1);
-	atomic_set(&MODEM_STATUS, 1);
-	atomic_set(&GPS_STATUS, 1);
-
+	//Turns status LEDs on
 	led_init();
-	int ut = atomic_get(&UART_STATUS);
-	int md = atomic_get(&MODEM_STATUS);
-	int gp = atomic_get(&GPS_STATUS);
-	
-	//Turns status LEDs on,
-	toggle_led_one(gp);
-	toggle_led_two(ut);
-	toggle_led_three(md);
+	led_0_on();
+	led_1_on();
+	led_2_on();
 
-	//Modem Data
-	int err;
-	err = modem_data_init();
-	if (err) {
-		LOG_ERR("modem_data_init, error: %d", err);
+	while (modem_configure() != 0) {
+		LOG_WRN("Failed to establish LTE connection.");
+		LOG_WRN("Will retry in %d seconds.", 10);
+		k_sleep(K_SECONDS(10));
 	}
+	led_2_off();
 
-	err = modem_info_string_get(MODEM_INFO_IMEI, gw_imei_buf);
+#if CONFIG_MODEM_INFO
+	modem_data_init();
+#endif /* CONFIG_MODEM_INFO */
+
+	int err = modem_info_string_get(MODEM_INFO_IMEI, gw_imei_buf, sizeof(gw_imei_buf));
 	if (err != GW_IMEI_LEN) {
 		LOG_ERR("modem_info_string_get(IMEI), error: %d", err);
 	}
 	LOG_INF("Device IMEI: %s", log_strdup(gw_imei_buf));
 
-	err = modem_info_string_get(MODEM_INFO_FW_VERSION, modem_fw_buf);
+	err = modem_info_string_get(MODEM_INFO_FW_VERSION, modem_fw_buf, sizeof(modem_fw_buf));
 	if (err != MODEM_FW_LEN) {
 		LOG_ERR("modem_info_string_get(MODEM FW), error: %d", err);
 	}
 	LOG_INF("Modem FW Version : %s", log_strdup(modem_fw_buf));
 
-	if(USE_LTE){
-	//Modem LTE Connection
-		md = lte_connect(LTE_INIT);
-		if (md) {
-			LOG_ERR("lte_connect, error: %d", md);
-		}
-		else{
-			atomic_set(&MODEM_STATUS, md);
-			toggle_led_three(md);
-			setup_psm();
-		}
-	}
-
 	k_sleep(K_SECONDS(2));
 	update_ts_modem();
-	k_sleep(K_SECONDS(2));
+	k_sleep(K_SECONDS(10));
 
 	//GPS
-	if(USE_GPS){
-		gp = gps_control_init(&application_work_q, gps_trigger_handler);
-		if (gp) {
-			LOG_ERR("gps_control_init, error %d", gp);
-		}
-		else{
-			LOG_INF("GPS Initialised");
-			atomic_set(&GPS_STATUS, gp);
-			toggle_led_one(gp);
-			k_sleep(5000);
-			set_gps_enable(true);
-		}
+	err = gps_control_init(&application_work_q, gps_handler);
+	if (err) {
+		LOG_ERR("GPS could not be initialized");
+		return;
+	}
+	else{
+		set_gps_enable(true);
+		led_0_off();
 	}
 
 	// UART
-	while(ut){
-		ut = uart_init();
+	err = uart_init();
+	if(err){
+		LOG_ERR("Error: Opening UART device");
 	}
-	toggle_led_two(ut);
-	atomic_set(&UART_STATUS, ut);
-	k_sleep(K_SECONDS(5));
+	else{
+		LOG_INF("UART Init Sucessful");
+		led_1_off();
+	}
+
+	atomic_set(&http_post_active, 0);
 }
 
 void main(void)
 {
-	int err;
+	int err = 0;
 
-	LOG_INF("Application started\n");
-	LOG_INF("Version: %s", log_strdup(CONFIG_RUUVI_NODE_APP_VERSION));
+	LOG_INF("Ruuvi Node Started");
+	if(CONFIG_RUUVI_NODE_APP_VERSION){
+		LOG_INF("Version: %s", log_strdup(CONFIG_RUUVI_NODE_APP_VERSION));
+	}
+
 
 	//Used for GPS Work Handler
 	k_work_q_start(&application_work_q, application_stack_area,
 		       K_THREAD_STACK_SIZEOF(application_stack_area),
 		       CONFIG_APPLICATION_WORKQUEUE_PRIORITY);
+	if (IS_ENABLED(CONFIG_WATCHDOG)) {
+		watchdog_init_and_start(&application_work_q);
+	}
+
+	work_init();
 
 	// Initilise the peripherals
 	sensors_init();
 
+	gps_control_start(0);
+	
 
 	while(1){
-		flash_led_four();
-		if(!gps_control_is_active()){
-			socket_toggle(true);
+		flash_led(3, 50);
+		if (gps_control_is_active()) {
 			k_sleep(K_SECONDS(1));
-			if(!gps_control_is_active()){
-				/*Check lte connection*/
-				err = lte_connect(CHECK_LTE_CONNECTION);
-				
-				if(!err){
-					open_post_socket();
-					struct msg_buf msg;
-					process_uart();
-					k_sleep(K_SECONDS(1));
-					encode_json(&msg, latT, longT, gw_imei_buf);
-					if(HTTPS_MODE){
-						err = https_post(msg.buf, msg.len);
-					}
-					else{
-						err = http_post(msg.buf, msg.len);
-					}
-					free(msg.buf);
-					close_http_socket();
+		}
+		else{
+			if(((get_ts() - gps_last_update_time) /60) >= CONFIG_RUUVI_GPS_UPDATE_INT){
+				gps_control_start(0);
+				// Slight delay to allow gps control to become active
+				k_sleep(K_SECONDS(1));
+			}
+			else{
+				atomic_set(&http_post_active, 1);
+				open_socket();
+				struct msg_buf msg;
+				process_uart();
+				k_sleep(K_SECONDS(1));
+				encode_json(&msg, latT, longT, gw_imei_buf);
+				if(CONFIG_RUUVI_ENDPOINT_HTTPS){
+					err = https_post(msg.buf, msg.len);
 				}
 				else{
-					lte_connect(LTE_INIT);
+					err = http_post(msg.buf, msg.len);
 				}
+				free(msg.buf);
+				close_socket();
+				k_sleep(K_SECONDS(30));
 			}
-			k_sleep(K_SECONDS(2));
-			socket_toggle(false);
-			if(!GPS_FIRST_FIX){
-				update_ts_modem();
-			}
+			
 		}
-		k_sleep(K_SECONDS(ADV_POST_INTERVAL-4));
+		atomic_set(&http_post_active, 0);
 	}
 }

@@ -11,6 +11,9 @@
 #include "time_handler.h"
 #include "ruuvinode.h"
 
+#include <logging/log.h>
+LOG_MODULE_REGISTER(data_parser, CONFIG_RUUVI_NODE_LOG_LEVEL);
+
 // Post Buffer
 cJSON *tags = NULL;
 
@@ -47,6 +50,7 @@ int encode_tags(struct ble_report *r, int count){
 
         cJSON_AddItemToObject(tags, r[index].tag_mac, tag);
     }
+    // /LOG_INF("Tags: %d\n", index);
     return err;
 }
 
@@ -71,7 +75,7 @@ int encode_json(struct msg_buf *output, double la, double lo,  char *imei)
 	cJSON *gwLat = cJSON_CreateNumber(la);
     if (gwLat == NULL)
     {
-		printk("Error: Creating gwLat");
+		LOG_ERR("Error: Creating gwLat");
 		++err;
         goto end;
     }
@@ -80,7 +84,7 @@ int encode_json(struct msg_buf *output, double la, double lo,  char *imei)
 	cJSON *gwLong = cJSON_CreateNumber(lo);
     if (gwLong == NULL)
     {
-		printk("Error: Creating gwLong");
+		LOG_ERR("Error: Creating gwLong");
 		++err;
         goto end;
     }
@@ -89,7 +93,7 @@ int encode_json(struct msg_buf *output, double la, double lo,  char *imei)
     cJSON *gwTime = cJSON_CreateNumber(get_ts());
     if (gwTime == NULL)
     {
-		printk("Error: Creating gwTime");
+		LOG_ERR("Error: Creating gwTime");
 		++err;
         goto end;
     }
@@ -99,14 +103,14 @@ int encode_json(struct msg_buf *output, double la, double lo,  char *imei)
     cJSON_AddItemToObject(root_obj, imei, gw_obj);
 
 	char *temp;
-    temp = cJSON_Print(root_obj);
+    temp = cJSON_PrintUnformatted(root_obj);
     if (temp == NULL)
     {
-        printk("Failed to print root_obj.\n");
+        LOG_ERR("Failed to print root_obj.\n");
 		++err;
         goto end;
     }
-	//printk("Encoded message: %s\n", temp);
+	LOG_INF("Encoded message: %s\n", temp);
 
     output->buf = temp;
 	output->len = strlen(temp);

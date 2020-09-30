@@ -9,9 +9,10 @@
 #include <drivers/watchdog.h>
 
 #include <logging/log.h>
-LOG_MODULE_REGISTER(watchdog, CONFIG_ASSET_TRACKER_LOG_LEVEL);
+LOG_MODULE_REGISTER(watchdog, CONFIG_RUUVI_NODE_LOG_LEVEL);
 
-#define WDT_FEED_WORKER_DELAY_MS ((CONFIG_ASSET_TRACKER_WATCHDOG_TIMEOUT_MSEC)/2)
+#define WDT_FEED_WORKER_DELAY_MS \
+	((CONFIG_RUUVI_WATCHDOG_TIMEOUT_MSEC)/2)
 
 struct wdt_data_storage {
 	struct device *wdt_drv;
@@ -36,7 +37,7 @@ static void secondary_feed_worker(struct k_work *work_desc)
 		LOG_ERR("Cannot feed watchdog. Error code: %d", err);
 	} else {
 		k_delayed_work_submit(&wdt_data.system_workqueue_work,
-				      WDT_FEED_WORKER_DELAY_MS);
+				      K_MSEC(WDT_FEED_WORKER_DELAY_MS));
 	}
 }
 
@@ -45,7 +46,7 @@ static int watchdog_timeout_install(struct wdt_data_storage *data)
 	static const struct wdt_timeout_cfg wdt_settings = {
 			.window = {
 				.min = 0,
-				.max = CONFIG_ASSET_TRACKER_WATCHDOG_TIMEOUT_MSEC,
+				.max = CONFIG_RUUVI_WATCHDOG_TIMEOUT_MSEC,
 			},
 			.callback = NULL,
 			.flags = WDT_FLAG_RESET_SOC
@@ -62,7 +63,7 @@ static int watchdog_timeout_install(struct wdt_data_storage *data)
 	}
 
 	LOG_INF("Watchdog timeout installed. Timeout: %d",
-		CONFIG_ASSET_TRACKER_WATCHDOG_TIMEOUT_MSEC);
+		CONFIG_RUUVI_WATCHDOG_TIMEOUT_MSEC);
 	return 0;
 }
 
@@ -95,7 +96,7 @@ static int watchdog_feed_enable(struct wdt_data_storage *data)
 	}
 
 	err = k_delayed_work_submit(&data->system_workqueue_work,
-				    WDT_FEED_WORKER_DELAY_MS);
+				    K_MSEC(WDT_FEED_WORKER_DELAY_MS));
 	if (err) {
 		LOG_ERR("Cannot start watchdog feed worker!"
 				" Error code: %d", err);
@@ -112,7 +113,7 @@ static int watchdog_enable(struct wdt_data_storage *data)
 
 	int err = -ENXIO;
 
-	data->wdt_drv = device_get_binding(DT_WDT_0_NAME);
+	data->wdt_drv = device_get_binding(DT_LABEL(DT_NODELABEL(wdt)));
 	if (data->wdt_drv == NULL) {
 		LOG_ERR("Cannot bind watchdog driver");
 		return err;
