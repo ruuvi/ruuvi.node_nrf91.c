@@ -27,6 +27,7 @@ jobs:
 
       - name: Install GCC ARM Embed
         run: |
+          mkdir -p ${GITHUB_WORKSPACE}/gnuarmemb/
           tar xvfj ${GITHUB_WORKSPACE}/gcc-arm/gcc-arm-none-eabi-9-2020-q2-update-x86_64-linux.tar.bz2 -C ${GITHUB_WORKSPACE}/gnuarmemb
 
       - name: Cache Device Tree Compile binary
