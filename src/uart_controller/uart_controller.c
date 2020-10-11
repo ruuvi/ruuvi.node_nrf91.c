@@ -7,128 +7,113 @@
 #include <drivers/uart.h>
 #include <ctype.h>
 
-#include "data_parser.h"
+#include "ruuvi_endpoint_ca_uart.h"
 #include "uart_controller.h"
-#include "time_handler.h"
+#include "adv_post.h"
 #include "ruuvinode.h"
 
 //Define the device
 #define BLE_UART "UART_1"
 static struct device *uart_dev;
 
+#define RX_BUFFER_MAX_SIZE 1024
 
-// Define the queue 
-//extern struct k_msgq ble_queue;
-//K_MSGQ_DEFINE(ble_queue, sizeof(u8_t), 256, 1);
+int rx_size = 0;
+int rx_i = 0;
 
-#define UART_RX_BUF_SIZE 1024
-/*
-// Define TX Parameters
-#define STX 0x2
-#define ETX 0x3
-#define NRF_CMD1 0x1
-#define NRF_CMD2 0x2
-#define NRF_CMD1_LEN 3
-#define NRF_CMD2_LEN 1*/
+/**USER_TYPES***/
+/*start*/
+#pragma pack(push, 1)
+typedef struct __terminal_struct
+{
+    int     size;
+    uint8_t rx_buffer[RX_BUFFER_MAX_SIZE];
+    uint8_t rx_buffer_error[RX_BUFFER_MAX_SIZE << 1];
+    uint8_t rx_buffer_error_index;
+} terminal_struct_t;
+#pragma pack(pop)
+/*end*/
 
-char rx_buf[UART_RX_BUF_SIZE];
+/**USER_VARIABLES***/
+/*start*/
+terminal_struct_t terminal;
+/*end*/
 
-struct ble_report tag[MAX_ADVS_TABLE];
-struct ble_report tag_buf[MAX_ADVS_TABLE];
-int tag_count;
-int tag_count_buf;
+static void rx_parse_task(void){
+    if (terminal.size != 0)
+    {
+        if(terminal.rx_buffer[RE_CA_UART_STX_INDEX] == RE_CA_UART_STX){
+            re_ca_uart_payload_t uart_payload = { 0 };
+            switch (terminal.rx_buffer[RE_CA_UART_CMD_INDEX]){
+                case RE_CA_UART_SET_FLTR_TAGS:
+                case RE_CA_UART_SET_CODED_PHY:
+                case RE_CA_UART_SET_SCAN_1MB_PHY:
+                case RE_CA_UART_SET_EXT_PAYLOAD:
+                case RE_CA_UART_SET_CH_37:
+                case RE_CA_UART_SET_CH_38:
+                case RE_CA_UART_SET_CH_39:
+                    re_ca_uart_decode (terminal.rx_buffer, &uart_payload);
+                    // Do something
 
-static void uart_data_parse(char *msg_orig){
-    
-    int err = 0;
-    const int tokens_num = 3;
-	int rssi = -1;
-	char *tokens[tokens_num+5];
-	int i = 0;
-	char *pch;
-	char *data;
-	char *tag_mac;
-    char *msg = strdup(msg_orig);
+                case RE_CA_UART_ACK:
+                    re_ca_uart_decode (terminal.rx_buffer, &uart_payload);
+                    // Do something
 
-	pch = strtok(msg, ",");
-	while (pch != NULL && i < 4) {
-		tokens[i++] = pch;
-		pch = strtok(NULL, ",");
-	}
+                case RE_CA_UART_SET_FLTR_ID:
+                    re_ca_uart_decode (terminal.rx_buffer, &uart_payload);
+                    // Do something
 
-	if (i != tokens_num) {
-		err++;
-        printk("i: %d and is not equal to tokens\n", i);
-        printk("UART BUF: %s \n", msg_orig);
-        goto end;
-	}
+                case RE_CA_UART_SET_ALL:
+                    re_ca_uart_decode (terminal.rx_buffer, &uart_payload);
+                    // Do something
 
-    tag_mac = tokens[0];
-	data = tokens[1];
-	rssi = atoi(tokens[2]);
+                case RE_CA_UART_ADV_RPRT:
+                    re_ca_uart_decode (terminal.rx_buffer, &uart_payload);
+                    adv_post_send_report((void *)&uart_payload);
+                    // Do something
 
-    if (strlen(tag_mac) != MAC_LEN) {
-		err++;
-        printk("mac len wrong: %s \n", tag_mac);
-        printk("UART BUF: %s \n", msg_orig);
-        goto end;
-	}
+                case RE_CA_UART_DEVICE_ID:
+                     re_ca_uart_decode (terminal.rx_buffer, &uart_payload);
+                     // Log adv to send
 
-	if (strlen(data) > ADV_DATA_MAX_LEN) {
-		err++;
-        printk("data len wrong: %s \n", data);
-        printk("UART BUF: %s \n", msg_orig);
-        goto end;
-	}
-
-	if (rssi > 0) {
-		err++;
-        printk("rssi wrong: %d \n", rssi);
-        printk("UART BUF: %s \n", msg_orig);
-        goto end;
-	}
-
-    if(tag_count >= MAX_ADVS_TABLE){
-        //printk("Reached limit\n");
+                case RE_CA_UART_GET_DEVICE_ID:
+                     re_ca_uart_decode (terminal.rx_buffer, &uart_payload);
+                     //Store Device id
+            }
+        }
+        memset(terminal.rx_buffer, 0, RX_BUFFER_MAX_SIZE);
+        terminal.size = 0;
     }
-    else{
-    strcpy(tag[tag_count].tag_mac, tag_mac);
-    tag[tag_count].rssi = rssi;
-    strcpy(tag[tag_count].data, data);
-
-    tag[tag_count].timestamp = get_ts();
-    ++tag_count;
-	}
-end:
-    free(msg);
-    free(pch);
-    return;
 }
-
 
 static void uart_fifo_callback(struct device *dev)
 {
-    u8_t data;
-    if (!uart_irq_update(dev)) {
-        printk("Error: uart_irq_update");
-    }
-    if (uart_irq_rx_ready(dev)) {
-        const int rxBytes = uart_fifo_read(dev, &data, 1);
-        if(rxBytes >0){
-            char temp[512];
-            sprintf(temp, "%c", data);
-            char *ptr = strstr(temp, "\n");
-            if(ptr == NULL){
-                strcat(rx_buf, temp);
-            }
-            else{
-                //printk("%s \n", rx_buf);
-                uart_data_parse(rx_buf);
-                memset(rx_buf, 0, 512);
+    if (terminal.size == 0){
+        u8_t data;
+        if (!uart_irq_update(dev)) {
+            printk("Error: uart_irq_update");
+        }
+        if (uart_irq_rx_ready(dev)) {
+            int rx_size_it = uart_fifo_read(dev, &data, 1);
+            if(rx_size_it > 0){
+                rx_size += rx_size_it;
+                if (data != 0x0A){
+                    terminal.rx_buffer[rx_i] = data;
+                    ++rx_i;
+                }
+                else{
+                    terminal.size = rx_size;
+                    terminal.rx_buffer[rx_i] = data;
+                    rx_i=0;
+                    rx_size = 0;
+                    rx_parse_task();
+                }
             }
         }
     }
+    
 }
+
 
 void uart_driver_write(char *data)      
 {
@@ -138,18 +123,6 @@ void uart_driver_write(char *data)
         temp = data[i];
         uart_poll_out(uart_dev, temp);
     }
-}
-
-// Prepares UART data for sending to cloud
-void process_uart(void)
-{
-    tag_count_buf = tag_count;
-    tag_count = 0;
-    memcpy(tag_buf, tag, sizeof tag); 
-    memset(tag, 0, sizeof(tag));
-    encode_tags(tag_buf, tag_count_buf);
-    memset(tag_buf, 0, sizeof(tag_buf));
-    return;
 }
 
 u8_t uart_init()
@@ -162,6 +135,5 @@ u8_t uart_init()
         uart_irq_callback_set(uart_dev, uart_fifo_callback);
         uart_irq_rx_enable(uart_dev);
         return 0;
-    }
-    
+    } 
 }

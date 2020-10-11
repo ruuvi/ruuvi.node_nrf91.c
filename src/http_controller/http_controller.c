@@ -2,8 +2,13 @@
 #include <net/socket.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
+#include <ctype.h>
+#include "cJSON.h"
+#include "cJSON_os.h"
 
 #include "http_controller.h"
+#include "time_handler.h"
 #include "ruuvinode.h"
 
 #include <logging/log.h>
@@ -16,8 +21,7 @@ int msgcnt;
 struct addrinfo *res;
 struct addrinfo hints = {
 		.ai_family = AF_INET,
-		.ai_socktype = SOCK_STREAM,
-	};
+		.ai_socktype = SOCK_STREAM};
 
 static void close_http_socket(void){
     LOG_INF("Finished. Closing socket");
@@ -177,4 +181,103 @@ void close_socket(void){
     else{
         close_http_socket();
     }
+}
+
+void http_send_online(char *imei)
+{
+    cJSON *       root = cJSON_CreateObject();
+
+    if (root){
+        cJSON_AddStringToObject(root, "status", "online");
+        cJSON_AddStringToObject(root, "gw_imei", imei);
+        cJSON_AddStringToObject(root, "gw_mac", "00:00:00:00:00:00"); /* Needed */
+    }
+    else{
+        LOG_ERR("%s: can't create root json", __func__);
+    }
+
+    char *json_str = cJSON_Print(root);
+
+    cJSON_Delete(root);
+    open_socket();
+    if(CONFIG_RUUVI_ENDPOINT_HTTPS){
+        https_post(json_str, strlen(json_str));
+    }
+    else{
+        http_post(json_str, strlen(json_str));
+    }
+    close_socket();
+    free(json_str);
+}
+
+void http_send_advs(struct adv_report_table *reports,  double latitude, double longitude,  char *imei)
+{
+    cJSON *tags = 0;
+    cJSON *location = cJSON_CreateObject();
+    time_t now = get_ts();
+    adv_report_t *adv;
+    cJSON *       root = cJSON_CreateObject();
+
+    if (root){
+        cJSON *gw = cJSON_AddObjectToObject(root, "data");
+
+        if (gw)
+        {
+            location = cJSON_AddObjectToObject(gw, "coordinates");
+            if(location){
+                cJSON_AddNumberToObject(location, "latitude", latitude);
+                cJSON_AddNumberToObject(location, "longitude", longitude);
+            }
+            else
+            {
+                LOG_ERR("%s: can't create lcoation json", __func__);
+            }
+            cJSON_AddNumberToObject(gw, "timestamp", now);
+            cJSON_AddStringToObject(gw, "gw_mac", imei); /* Replace with NRF mac */
+            tags = cJSON_AddObjectToObject(gw, "tags");
+        }
+        else
+        {
+            LOG_ERR("%s: can't create gw json", __func__);
+        }
+    }
+    else{
+        LOG_ERR("%s: can't create root json", __func__);
+    }
+
+    if (tags)
+    {
+        for (int i = 0; i < reports->num_of_advs; i++)
+        {
+            adv        = &reports->table[i];
+            cJSON *tag = cJSON_CreateObject();
+            cJSON_AddNumberToObject(tag, "rssi", adv->rssi);
+            cJSON_AddNumberToObject(tag, "timestamp", adv->timestamp);
+            cJSON_AddStringToObject(tag, "data", adv->data);
+            const mac_address_str_t mac_str = mac_address_to_str(&adv->tag_mac);
+            cJSON_AddItemToObject(tags, mac_str.str_buf, tag);
+        }
+    }
+    else
+    {
+        LOG_ERR("%s: can't create tags json", __func__);
+    }
+
+    char *json_str = cJSON_Print(root);
+    char *json_str_test = cJSON_PrintUnformatted(root);
+    /* Use print instead of log, as log was unreadable due to formatting*/
+    printk("Size of JSON: %d\n", strlen(json_str));
+    printk("Size of UNFORMATTED JSON: %d\n", strlen(json_str_test));
+    //printk("HTTP POST: %s", json_str);
+    cJSON_Delete(root);
+    open_socket();
+    if(CONFIG_RUUVI_ENDPOINT_HTTPS){
+        https_post(json_str, strlen(json_str));
+    }
+    else{
+        http_post(json_str, strlen(json_str));
+    }
+    close_socket();
+    free(json_str);
+    free(json_str_test);
 }

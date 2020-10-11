@@ -1,4 +1,5 @@
 #include <zephyr.h>
+#include "ruuvinode.h"
 
 #define MAX_MTU_SIZE     4096
 #define RECV_BUF_SIZE    4096
@@ -16,3 +17,6 @@ int https_post(char *m, size_t t);
 
 int open_socket(void);
 void close_socket(void);
+
+void http_send_online(char *imei);
+void http_send_advs(struct adv_report_table *reports, double latitude, double longitude,  char *imei);

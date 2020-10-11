@@ -1,0 +1,6 @@
+zephyr_include_directories(.)
+target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ruuvi_endpoint_3.c)
+target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ruuvi_endpoint_5.c)
+target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ruuvi_endpoint_ca_uart.c)
+target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ruuvi_endpoint_ibeacon.c)
+target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ruuvi_endpoints.c)

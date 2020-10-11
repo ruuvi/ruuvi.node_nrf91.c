@@ -60,14 +60,13 @@ int update_ts_modem(void){
 	memset(ts_buf, 0, MODEM_TIME_LEN + 1);
 	free(msg);
 	free(pch);
-    LOG_INF("TS updated by Modem: %d", get_ts());
+    LOG_INF("TS updated by Modem");
 	return 0;
 }
 
 void update_ts_gps(struct tm *g){
     epoch_tk = k_uptime_get_32();
     epoch = mktime(g);
-    LOG_INF("GPS epoch: %lld\n", epoch);
     LOG_INF("TS updated by GPS\n");
     return;
 

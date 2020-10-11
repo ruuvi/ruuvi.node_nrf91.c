@@ -2,7 +2,6 @@
 #include <kernel_structs.h>
 #include <stdio.h>
 #include <string.h>
-#include <drivers/gps.h>
 #include <time.h>
 #include <console/console.h>
 #include <power/reboot.h>
@@ -15,12 +14,14 @@
 #include <modem/modem_info.h>
 #endif /* CONFIG_BSD_LIBRARY */
 
+#include <drivers/gps.h>
+
 #include "led_controller.h"
 #include "uart_controller.h"
 #include "gps_controller.h"
 #include "http_controller.h"
+#include "adv_post.h"
 #include "ruuvinode.h"
-#include "data_parser.h"
 #include "time_handler.h"
 #include "watchdog.h"
 
@@ -51,10 +52,7 @@ static struct k_work_q application_work_q;
 static atomic_val_t http_post_active;
 static s64_t gps_last_active_time;
 static time_t gps_last_update_time;
-double latT = 0;
-double longT = 0;
 static struct modem_param_info modem_param;
-static char gw_imei_buf[GW_IMEI_LEN + 1];
 static char modem_fw_buf[MODEM_FW_LEN + 1];
 
 static void set_gps_enable(const bool enable);
@@ -174,9 +172,7 @@ static void gps_handler(struct device *dev, struct gps_event *evt)
 	case GPS_EVT_PVT_FIX:
 		LOG_INF("GPS_EVT_PVT_FIX");
 		gps_last_update_time = get_ts();
-		latT = evt->pvt.latitude;
-		longT = evt->pvt.longitude;
-		//LOG_INF("Latitude: %d, Longitude: %d", latT, longT);
+		update_position_data(evt->pvt.latitude, evt->pvt.longitude);
 		gps_control_set_active(false);
 		LOG_INF("GPS will be started in %d seconds",
 			gps_control_get_gps_reporting_interval());
@@ -319,6 +315,30 @@ static void work_init(void)
 #endif /* CONFIG_MODEM_INFO */
 }
 
+void
+mac_address_bin_init(mac_address_bin_t *p_mac, const uint8_t mac[6])
+{
+    memcpy(p_mac->mac, mac, sizeof(p_mac->mac));
+}
+
+mac_address_str_t
+mac_address_to_str(const mac_address_bin_t *p_mac)
+{
+    mac_address_str_t mac_str = { 0 };
+    const uint8_t *   mac     = p_mac->mac;
+    snprintf(
+        mac_str.str_buf,
+        sizeof(mac_str.str_buf),
+        "%02x:%02x:%02x:%02x:%02x:%02x",
+        mac[0],
+        mac[1],
+        mac[2],
+        mac[3],
+        mac[4],
+        mac[5]);
+    return mac_str;
+}
+
 /** @brief Initialises the peripherals that are used by the application. */
 static void sensors_init(void)
 {
@@ -337,19 +357,16 @@ static void sensors_init(void)
 
 #if CONFIG_MODEM_INFO
 	modem_data_init();
-#endif /* CONFIG_MODEM_INFO */
+	update_imei_data();
 
-	int err = modem_info_string_get(MODEM_INFO_IMEI, gw_imei_buf, sizeof(gw_imei_buf));
-	if (err != GW_IMEI_LEN) {
-		LOG_ERR("modem_info_string_get(IMEI), error: %d", err);
-	}
-	LOG_INF("Device IMEI: %s", log_strdup(gw_imei_buf));
-
-	err = modem_info_string_get(MODEM_INFO_FW_VERSION, modem_fw_buf, sizeof(modem_fw_buf));
+	int err = modem_info_string_get(MODEM_INFO_FW_VERSION, modem_fw_buf, sizeof(modem_fw_buf));
 	if (err != MODEM_FW_LEN) {
 		LOG_ERR("modem_info_string_get(MODEM FW), error: %d", err);
 	}
 	LOG_INF("Modem FW Version : %s", log_strdup(modem_fw_buf));
+#endif /* CONFIG_MODEM_INFO */
+
+	
 
 	k_sleep(K_SECONDS(2));
 	update_ts_modem();
@@ -402,6 +419,8 @@ void main(void)
 	// Initilise the peripherals
 	sensors_init();
 
+	online_post();
+
 	gps_control_start(0);
 	
 
@@ -418,22 +437,9 @@ void main(void)
 			}
 			else{
 				atomic_set(&http_post_active, 1);
-				open_socket();
-				struct msg_buf msg;
-				process_uart();
-				k_sleep(K_SECONDS(1));
-				encode_json(&msg, latT, longT, gw_imei_buf);
-				if(CONFIG_RUUVI_ENDPOINT_HTTPS){
-					err = https_post(msg.buf, msg.len);
-				}
-				else{
-					err = http_post(msg.buf, msg.len);
-				}
-				free(msg.buf);
-				close_socket();
+				adv_post();
 				k_sleep(K_SECONDS(30));
 			}
-			
 		}
 		atomic_set(&http_post_active, 0);
 	}
