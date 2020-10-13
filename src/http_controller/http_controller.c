@@ -183,14 +183,14 @@ void close_socket(void){
     }
 }
 
-void http_send_online(char *imei)
+void http_send_online(char *imei, char *mac)
 {
     cJSON *       root = cJSON_CreateObject();
 
     if (root){
         cJSON_AddStringToObject(root, "status", "online");
         cJSON_AddStringToObject(root, "gw_imei", imei);
-        cJSON_AddStringToObject(root, "gw_mac", "00:00:00:00:00:00"); /* Needed */
+        cJSON_AddStringToObject(root, "gw_mac", mac);
     }
     else{
         LOG_ERR("%s: can't create root json", __func__);
@@ -210,7 +210,7 @@ void http_send_online(char *imei)
     free(json_str);
 }
 
-void http_send_advs(struct adv_report_table *reports,  double latitude, double longitude,  char *imei)
+void http_send_advs(struct adv_report_table *reports,  double latitude, double longitude,  char *imei, char *mac)
 {
     cJSON *tags = 0;
     cJSON *location = cJSON_CreateObject();
@@ -233,7 +233,8 @@ void http_send_advs(struct adv_report_table *reports,  double latitude, double l
                 LOG_ERR("%s: can't create lcoation json", __func__);
             }
             cJSON_AddNumberToObject(gw, "timestamp", now);
-            cJSON_AddStringToObject(gw, "gw_mac", imei); /* Replace with NRF mac */
+            cJSON_AddStringToObject(gw, "gw_imei", imei);
+            cJSON_AddStringToObject(gw, "gw_mac", mac);
             tags = cJSON_AddObjectToObject(gw, "tags");
         }
         else

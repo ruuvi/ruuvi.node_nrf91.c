@@ -12,6 +12,9 @@
 #include "adv_post.h"
 #include "ruuvinode.h"
 
+#include <logging/log.h>
+LOG_MODULE_REGISTER(uart_controller, CONFIG_RUUVI_NODE_LOG_LEVEL);
+
 //Define the device
 #define BLE_UART "UART_1"
 static struct device *uart_dev;
@@ -54,31 +57,38 @@ static void rx_parse_task(void){
                 case RE_CA_UART_SET_CH_39:
                     re_ca_uart_decode (terminal.rx_buffer, &uart_payload);
                     // Do something
-
+                    break;
                 case RE_CA_UART_ACK:
                     re_ca_uart_decode (terminal.rx_buffer, &uart_payload);
                     // Do something
-
+                    break;
                 case RE_CA_UART_SET_FLTR_ID:
                     re_ca_uart_decode (terminal.rx_buffer, &uart_payload);
                     // Do something
-
+                    break;
                 case RE_CA_UART_SET_ALL:
                     re_ca_uart_decode (terminal.rx_buffer, &uart_payload);
                     // Do something
-
+                    break;
                 case RE_CA_UART_ADV_RPRT:
                     re_ca_uart_decode (terminal.rx_buffer, &uart_payload);
                     adv_post_send_report((void *)&uart_payload);
                     // Do something
-
+                    break;
                 case RE_CA_UART_DEVICE_ID:
-                     re_ca_uart_decode (terminal.rx_buffer, &uart_payload);
-                     // Log adv to send
-
+                    re_ca_uart_decode (terminal.rx_buffer, &uart_payload);
+                    mac_address_bin_t mac;
+                    mac.mac[0U] = (uart_payload.params.device_id.addr >> 40U) & 0xFFU;
+                    mac.mac[1U] = (uart_payload.params.device_id.addr >> 32U) & 0xFFU;
+                    mac.mac[2U] = (uart_payload.params.device_id.addr >> 24U) & 0xFFU;
+                    mac.mac[3U] = (uart_payload.params.device_id.addr >> 16U) & 0xFFU;
+                    mac.mac[4U] = (uart_payload.params.device_id.addr >> 8U) & 0xFFU;
+                    mac.mac[5U] = (uart_payload.params.device_id.addr >> 0U) & 0xFFU;
+                    update_nrf_mac(mac);
+                    break;
                 case RE_CA_UART_GET_DEVICE_ID:
-                     re_ca_uart_decode (terminal.rx_buffer, &uart_payload);
-                     //Store Device id
+                    re_ca_uart_decode (terminal.rx_buffer, &uart_payload);
+                    break;
             }
         }
         memset(terminal.rx_buffer, 0, RX_BUFFER_MAX_SIZE);
@@ -89,9 +99,9 @@ static void rx_parse_task(void){
 static void uart_fifo_callback(struct device *dev)
 {
     if (terminal.size == 0){
-        u8_t data;
+        uint8_t data;
         if (!uart_irq_update(dev)) {
-            printk("Error: uart_irq_update");
+            LOG_ERR("Error: uart_irq_update");
         }
         if (uart_irq_rx_ready(dev)) {
             int rx_size_it = uart_fifo_read(dev, &data, 1);
@@ -115,17 +125,16 @@ static void uart_fifo_callback(struct device *dev)
 }
 
 
-void uart_driver_write(char *data)      
+void uart_driver_write(uint8_t *data, uint8_t data_length)      
 {
-    u8_t i;
-    u8_t temp;
-    for (i = 0; i < strlen(data); i++) {
-        temp = data[i];
-        uart_poll_out(uart_dev, temp);
+    uint8_t i;
+    for (i = 0; i < data_length; i++) {
+        //printk("%02X", data[i]);
+        uart_poll_out(uart_dev, data[i]);
     }
 }
 
-u8_t uart_init()
+uint8_t uart_init()
 {
 	uart_dev = device_get_binding(BLE_UART);
     if (!uart_dev) {

@@ -16,6 +16,8 @@
 
 #include <drivers/gps.h>
 
+#include "api.h"
+#include "ruuvi_endpoint_ca_uart.h"
 #include "led_controller.h"
 #include "uart_controller.h"
 #include "gps_controller.h"
@@ -396,6 +398,12 @@ static void sensors_init(void)
 	atomic_set(&http_post_active, 0);
 }
 
+void
+ruuvi_send_nrf_get_id(void)
+{
+    api_send_get_device_id(RE_CA_UART_GET_DEVICE_ID);
+}
+
 void main(void)
 {
 	int err = 0;
@@ -418,6 +426,8 @@ void main(void)
 
 	// Initilise the peripherals
 	sensors_init();
+
+	ruuvi_send_nrf_get_id();
 
 	online_post();
 

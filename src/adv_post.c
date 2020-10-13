@@ -21,11 +21,18 @@ gw_metrics_t gw_metrics = {};
 double latT = 0;
 double longT = 0;
 static char gw_imei_buf[GW_IMEI_LEN + 1];
+mac_address_str_t nrf_mac;
 
 K_MUTEX_DEFINE(adv_table_mux);
 
 struct adv_report_table adv_reports;
 struct adv_report_table adv_reports_buf;
+
+void update_nrf_mac(mac_address_bin_t m){
+    nrf_mac = mac_address_to_str(&m);
+    LOG_INF("NRF MAC: %s\n", nrf_mac.str_buf);
+    return;
+}
 
 void update_position_data(double latitude, double longitude){
     latT = latitude;
@@ -188,7 +195,7 @@ adv_post_send_report(void *arg)
 }
 
 void online_post(void){
-    http_send_online(gw_imei_buf);
+    http_send_online(gw_imei_buf, nrf_mac.str_buf);
 }
 
 void adv_post(void)
@@ -217,6 +224,6 @@ void adv_post(void)
 
 
     if (adv_reports_buf.num_of_advs){
-        http_send_advs(&adv_reports_buf, latT, longT, gw_imei_buf);
+        http_send_advs(&adv_reports_buf, latT, longT, gw_imei_buf, nrf_mac.str_buf);
     }
 }

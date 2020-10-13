@@ -18,5 +18,5 @@ int https_post(char *m, size_t t);
 int open_socket(void);
 void close_socket(void);
 
-void http_send_online(char *imei);
-void http_send_advs(struct adv_report_table *reports, double latitude, double longitude,  char *imei);
+void http_send_online(char *imei, char *mac);
+void http_send_advs(struct adv_report_table *reports, double latitude, double longitude,  char *imei, char *mac);

@@ -16,6 +16,7 @@ target_sources(app PRIVATE src/main.c)
 target_sources(app PRIVATE src/adv_post.c)
 zephyr_include_directories(src)
 
+add_subdirectory(src/api)
 add_subdirectory(src/led_controller)
 add_subdirectory(src/uart_controller)
 add_subdirectory(src/gps_controller)
