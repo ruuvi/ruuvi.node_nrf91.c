@@ -56,3 +56,5 @@ Mkfile.old
 dkms.conf
 
 .vscode/
+
+ruuvi_node_builds/
