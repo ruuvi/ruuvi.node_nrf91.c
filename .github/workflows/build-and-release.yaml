@@ -97,19 +97,17 @@ jobs:
           cd ${GITHUB_WORKSPACE}/ncs/nrf/applications/ruuvi.node_nrf91.c
           mkdir -p -v ${GITHUB_WORKSPACE}/.cache
           export XDG_CACHE_HOME=${GITHUB_WORKSPACE}/.cache
-          # Print config
-          cat prj.conf
           # NB-IoT
-          west build -p auto -- -DOVERLAY_CONFIG=NB-IoT_DEBUG.conf
+          west build -p auto -- -DCMAKE_BUILD_TYPE=NBIOT_DEBUG
           mv -v ${GITHUB_WORKSPACE}/ncs/nrf/applications/ruuvi.node_nrf91.c/build/zephyr/merged.hex ${GITHUB_WORKSPACE}/ruuvi-node-nrf9160_pca10090ns_debug.hex
           # NB-IoT no degub
-          west build -p auto -- -DOVERLAY_CONFIG=NB-IoT.conf
+          west build -p auto -- -DCMAKE_BUILD_TYPE=NBIOT
           mv -v ${GITHUB_WORKSPACE}/ncs/nrf/applications/ruuvi.node_nrf91.c/build/zephyr/merged.hex ${GITHUB_WORKSPACE}/ruuvi-node-nrf9160_pca10090ns.hex
           # LTE-m no debug
-          west build -p auto -- -DOVERLAY_CONFIG=LTE.conf
+          west build -p auto -- -DCMAKE_BUILD_TYPE=LTE
           mv -v ${GITHUB_WORKSPACE}/ncs/nrf/applications/ruuvi.node_nrf91.c/build/zephyr/merged.hex ${GITHUB_WORKSPACE}/ruuvi-node-nrf9160_pca10090ns-ltem.hex
           #LTE-M
-          west build -p auto -- -DOVERLAY_CONFIG=LTE_DEBUG.conf
+          west build -p auto -- -DCMAKE_BUILD_TYPE=LTE_DEBUG
           mv -v ${GITHUB_WORKSPACE}/ncs/nrf/applications/ruuvi.node_nrf91.c/build/zephyr/merged.hex ${GITHUB_WORKSPACE}/ruuvi-node-nrf9160_pca10090ns-ltem_debug.hex
 
       - name: Semantic release
