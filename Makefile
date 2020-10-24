@@ -1,4 +1,4 @@
-# Main makefile of ruuvi.node_nrfc
+# Main makefile of ruuvi.node_nrf91.c
 
 BUILD_DIRECTORY := ruuvi_node_builds
 

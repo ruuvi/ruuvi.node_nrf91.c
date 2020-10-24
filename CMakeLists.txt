@@ -16,9 +16,9 @@ endif()
 # This sample is only compatible with ruuvi_node because it has
 # re-directed the 'boards' directory to a directory that only contains
 # this board.
-set(BOARD_ROOT ${CMAKE_CURRENT_LIST_DIR})
+#set(BOARD_ROOT ${CMAKE_CURRENT_LIST_DIR})
 # Will be replaced with Ruuvi Node
-set(BOARD nrf9160_pca10090ns)
+set(BOARD nrf9160dk_nrf9160ns)
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(ruuvi.node_nrf911.c)

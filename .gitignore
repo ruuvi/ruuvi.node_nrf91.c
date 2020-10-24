@@ -58,3 +58,7 @@ dkms.conf
 .vscode/
 
 ruuvi_node_builds/
+
+*.emSession
+
+SES/LTE_DEBUG/LTE_DEBUG.emProject
