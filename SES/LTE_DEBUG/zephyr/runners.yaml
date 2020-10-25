@@ -1,0 +1,27 @@
+# Available runners configured by board.cmake.
+runners:
+- nrfjprog
+- jlink
+
+# Default flash runner if --runner is not given.
+flash-runner: nrfjprog
+
+# Default debug runner if --runner is not given.
+debug-runner: jlink
+
+# Default command line arguments. The ones in "common" are always given.
+# The other sub-keys give runner-specific arguments.
+args:
+  common:
+  - --board-dir=/home/ruuviUser/ncs/zephyr/boards/arm/nrf9160dk_nrf9160
+  - --elf-file=/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/zephyr/zephyr.elf
+  - --hex-file=/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/zephyr/merged.hex
+  - --bin-file=/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/zephyr/zephyr.bin
+  - --gdb=/home/ruuviUser/gnuarmemb/bin/arm-none-eabi-gdb
+  - --openocd=OPENOCD-NOTFOUND
+  nrfjprog:
+    - --nrf-family=NRF91
+  jlink:
+    - --dt-flash=y
+    - --device=cortex-m33
+    - --speed=4000
