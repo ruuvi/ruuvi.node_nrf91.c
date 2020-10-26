@@ -1,0 +1,13 @@
+# Target labels
+ spm_subimage
+# Source files and their labels
+/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/modules/nrf/samples/CMakeFiles/spm_subimage
+/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/modules/nrf/samples/CMakeFiles/spm_subimage.rule
+/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/modules/nrf/samples/CMakeFiles/spm_subimage-complete.rule
+/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/modules/nrf/samples/spm_subimage-prefix/src/spm_subimage-stamp/spm_subimage-install.rule
+/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/modules/nrf/samples/spm_subimage-prefix/src/spm_subimage-stamp/spm_subimage-mkdir.rule
+/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/modules/nrf/samples/spm_subimage-prefix/src/spm_subimage-stamp/spm_subimage-download.rule
+/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/modules/nrf/samples/spm_subimage-prefix/src/spm_subimage-stamp/spm_subimage-update.rule
+/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/modules/nrf/samples/spm_subimage-prefix/src/spm_subimage-stamp/spm_subimage-patch.rule
+/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/modules/nrf/samples/spm_subimage-prefix/src/spm_subimage-stamp/spm_subimage-configure.rule
+/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/modules/nrf/samples/spm_subimage-prefix/src/spm_subimage-stamp/spm_subimage-build.rule
