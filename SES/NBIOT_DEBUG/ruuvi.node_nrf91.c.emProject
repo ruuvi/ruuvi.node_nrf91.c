@@ -42,7 +42,7 @@
     <file file_name="/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/zephyr/nrf9160dk_nrf9160ns.dts_compiled" />
   </folder>
   <project Name="zephyr/merged.hex">
-    <configuration Name="Common" debug_initial_breakpoint="z_cstart" debug_start_from_entry_point_symbol="No" project_dependencies="all(build)" external_build_file_name="$(ProjectDir)/zephyr/merged.hex" external_debug_symbols_file_name="$(ProjectDir)/zephyr/zephyr.elf" external_debug_symbols_file_name1="$(ProjectDir)/spm/zephyr/zephyr.elf" external_link_command="" project_type="Externally Built Executable" />
+    <configuration Name="Common" debug_initial_breakpoint="z_cstart" debug_start_from_entry_point_symbol="No" project_dependencies="all(NBIOT_DEBUG)" external_build_file_name="$(ProjectDir)/zephyr/merged.hex" external_debug_symbols_file_name="$(ProjectDir)/zephyr/zephyr.elf" external_debug_symbols_file_name1="$(ProjectDir)/spm/zephyr/zephyr.elf" external_link_command="" project_type="Externally Built Executable" />
   </project>
   <import file_name="NBIOT_DEBUG.emProject" can_modify_solution="No" />
 </solution>
