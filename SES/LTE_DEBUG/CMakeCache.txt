@@ -300,7 +300,7 @@ CMAKE_VERBOSE_MAKEFILE:BOOL=FALSE
 // These settings will override the settings in the application’s
 // .config file or its default .conf file.Multiple files may be
 // listed, e.g. CONF_FILE="prj1.conf prj2.conf"
-CONF_FILE:STRING=~/ncs/nrf/applications/ruuvi.node_nrf91.c/CONFIGS/LTE.conf
+CONF_FILE:STRING=~/ncs/nrf/applications/ruuvi.node_nrf91.c/CONFIGS/LTE_DEBUG.conf
 
 //Path to a program.
 DTC:FILEPATH=/usr/bin/dtc
