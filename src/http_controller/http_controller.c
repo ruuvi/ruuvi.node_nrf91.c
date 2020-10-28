@@ -24,7 +24,7 @@ struct addrinfo hints = {
 		.ai_socktype = SOCK_STREAM};
 
 static void close_http_socket(void){
-    LOG_INF("Finished. Closing socket");
+    LOG_INF("Finished. Closing HTTP socket");
     int err = close(fd);
     if (err){
         LOG_ERR("closing err: %d", err);
@@ -32,13 +32,11 @@ static void close_http_socket(void){
 }
 
 static int open_http_socket(void){
-    
+    LOG_INF("Opening HTTP Socket");
     static struct sockaddr_in local_addr;
-
     local_addr.sin_family = AF_INET;
     local_addr.sin_port = htons(0);
     local_addr.sin_addr.s_addr = 0;
-    LOG_INF("Open HTTP Socket");
 
     int err = getaddrinfo(CONFIG_RUUVI_ENDPOINT_HOST, NULL, NULL, &res);
     if(err){
@@ -69,8 +67,6 @@ int http_post(char *m, size_t t){
                             POST_TEMPLATE, CONFIG_RUUVI_ENDPOINT_HOST_PATH,
                             CONFIG_RUUVI_ENDPOINT_HOST, t,
                             m);
-
-    //printk("%d Send Data length\n", send_data_len);
     
     do {
         bytes =
@@ -82,21 +78,24 @@ int http_post(char *m, size_t t){
         };
 
     } while (bytes < 0);
+
     msgcnt++;
+
     //Remove later
     LOG_INF("Message %d Sent\n", msgcnt);
     return 0;
 }
 
 static void close_https_socket(void){
+    LOG_INF("Finished. Closing HTTPS socket");
     freeaddrinfo(res);
 	(void)close(fd);
 	return;
 }
 
 static int open_https_socket(void){
+    LOG_INF("Opening HTTP Socket");
     int err;
-	
 	err = getaddrinfo(CONFIG_RUUVI_ENDPOINT_HOST, NULL, &hints, &res);
 	if (err) {
 		LOG_ERR("getaddrinfo errno %d\n", errno);
@@ -199,14 +198,16 @@ void http_send_online(char *imei, char *mac)
     char *json_str = cJSON_Print(root);
 
     cJSON_Delete(root);
-    open_socket();
-    if(CONFIG_RUUVI_ENDPOINT_HTTPS){
+    int err = open_socket();
+    if(!err){
+         if(CONFIG_RUUVI_ENDPOINT_HTTPS){
         https_post(json_str, strlen(json_str));
+        }
+        else{
+            http_post(json_str, strlen(json_str));
+        }
+        close_socket();
     }
-    else{
-        http_post(json_str, strlen(json_str));
-    }
-    close_socket();
     free(json_str);
 }
 
@@ -265,20 +266,17 @@ void http_send_advs(struct adv_report_table *reports,  double latitude, double l
     }
 
     char *json_str = cJSON_Print(root);
-    char *json_str_test = cJSON_PrintUnformatted(root);
-    /* Use print instead of log, as log was unreadable due to formatting*/
-    printk("Size of JSON: %d\n", strlen(json_str));
-    printk("Size of UNFORMATTED JSON: %d\n", strlen(json_str_test));
     //printk("HTTP POST: %s", json_str);
     cJSON_Delete(root);
-    open_socket();
-    if(CONFIG_RUUVI_ENDPOINT_HTTPS){
+    int err = open_socket();
+    if(!err){
+       if(CONFIG_RUUVI_ENDPOINT_HTTPS){
         https_post(json_str, strlen(json_str));
+        }
+        else{
+            http_post(json_str, strlen(json_str));
+        }
+        close_socket(); 
     }
-    else{
-        http_post(json_str, strlen(json_str));
-    }
-    close_socket();
     free(json_str);
-    free(json_str_test);
 }
