@@ -19,12 +19,14 @@ endif()
 set(BOARD nrf9160dk_nrf9160ns)
 
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
-project(ruuvi.node_nrf911.c)
+project(ruuvi.node_nrf91.c)
 zephyr_compile_definitions(PROJECT_NAME=${PROJECT_NAME})
 zephyr_compile_definitions(_POSIX_C_SOURCE=200809L)
 
 target_sources(app PRIVATE src/main.c)
-zephyr_include_directories(src)
+zephyr_include_directories(
+  src
+  components/ruuvi.endpoints.c)
 
 # Include application events and configuration headers
 zephyr_library_include_directories(
@@ -34,7 +36,6 @@ zephyr_library_include_directories(
   src/uart_controller
   src/http_controller
   src/watchdog
-  src/ruuvi.endpoints.c
   src/time_handler
   src/gps_controller
   )
@@ -47,4 +48,4 @@ add_subdirectory(src/gps_controller)
 add_subdirectory(src/http_controller)   
 add_subdirectory(src/time_handler)
 add_subdirectory(src/watchdog)
-add_subdirectory(src/ruuvi.endpoints.c)
+add_subdirectory(components/ruuvi.endpoints.c)

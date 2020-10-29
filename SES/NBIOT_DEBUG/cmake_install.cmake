@@ -43,7 +43,7 @@ if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   include("/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/src/http_controller/cmake_install.cmake")
   include("/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/src/time_handler/cmake_install.cmake")
   include("/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/src/watchdog/cmake_install.cmake")
-  include("/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/src/ruuvi.endpoints.c/cmake_install.cmake")
+  include("/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/components/ruuvi.endpoints.c/cmake_install.cmake")
 
 endif()
 

@@ -1,4 +1,4 @@
-# Install script for directory: /home/ruuviUserer/ncs/modules/fs/fatfs
+# Install script for directory: /home/ruuviUser/ncs/modules/fs/fatfs
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

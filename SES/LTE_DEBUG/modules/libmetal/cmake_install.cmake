@@ -1,4 +1,4 @@
-# Install script for directory: /home/ruuviUsererer/ncs/modules/hal/libmetal
+# Install script for directory: /home/ruuviUser/ncs/modules/hal/libmetal
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

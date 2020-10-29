@@ -1,4 +1,4 @@
-# Install script for directory: /home/ruuviUserer/ncs/nrf/drivers/entropy
+# Install script for directory: /home/ruuviUser/ncs/nrf/drivers/entropy
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

@@ -1,4 +1,4 @@
-# Install script for directory: /home/ruuviUserer/ncs/modules/lib/gui/lvgl
+# Install script for directory: /home/ruuviUser/ncs/modules/lib/gui/lvgl
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

@@ -1,0 +1,61 @@
+<!DOCTYPE CrossStudio_Project_File>
+<solution Name="ruuvi.node_nrf91.c">
+  <folder Name="LTE DEBUG">
+     <import file_name="LTE_DEBUG/ruuvi.node_nrf91.c.emProject" can_modify_solution="No" />
+  </folder>
+  <folder Name="LTE">
+     <import file_name="LTE/ruuvi.node_nrf91.c.emProject" can_modify_solution="No" />
+  </folder>
+  <folder Name="NBIOT DEBUG">
+     <import file_name="NBIOT_DEBUG/ruuvi.node_nrf91.c.emProject" can_modify_solution="No" />
+  </folder>
+  <folder Name="NBIOT">
+     <import file_name="NBIOT/ruuvi.node_nrf91.c.emProject" can_modify_solution="No" />
+  </folder>
+  <folder Name="Ruuvi Node SRC">
+      <folder Name="Application">
+        <file file_name="../src/main.c" />
+        <file file_name="../src/ruuvinode.h" />
+      </folder>
+      <folder Name="Config">
+         <file file_name="../CONFIGS/LTE.conf" />
+         <file file_name="../CONFIGS/LTE_DEBUG.conf" />
+         <file file_name="../CONFIGS/NBIOT.conf" />
+         <file file_name="../CONFIGS/NBIOT_DEBUG.conf" />
+      </folder>
+      <folder Name="Advertisement Post" exclude=""
+        filter="*.c;*.h"
+        path="../src/adv_post"
+        recurse="Yes" />
+      <folder Name="API" exclude=""
+        filter="*.c;*.h"
+        path="../src/api"
+        recurse="Yes" />
+      <folder Name="GPS" exclude=""
+        filter="*.c;*.h"
+        path="../src/gps_controller"
+        recurse="Yes" />
+      <folder Name="HTTP" exclude=""
+        filter="*.c;*.h"
+        path="../src/http_controller"
+        recurse="Yes" />
+      <folder Name="LED" exclude=""
+        filter="*.c;*.h"
+        path="../src/led_controller"
+        recurse="Yes" />
+      <folder Name="UART" exclude=""
+        filter="*.c;*.h"
+        path="../src/uart_controller"
+        recurse="Yes" />
+      <folder Name="Time Handler" exclude=""
+        filter="*.c;*.h"
+        path="../src/time_handler"
+        recurse="Yes" />
+      <folder Name="Watchdog" exclude="" filter="*.c;*.h"
+        path="../src/watchdog"
+        recurse="Yes" />
+      <folder Name="Ruuvi Endpoints" exclude="" filter="*.c;*.h"
+        path="../components/ruuvi.endpoints.c/src"
+        recurse="Yes" />
+    </folder>
+</solution>

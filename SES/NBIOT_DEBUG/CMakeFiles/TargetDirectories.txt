@@ -81,6 +81,8 @@
 /home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/zephyr/subsys/debug/CMakeFiles/edit_cache.dir
 /home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/zephyr/subsys/logging/CMakeFiles/rebuild_cache.dir
 /home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/zephyr/subsys/logging/CMakeFiles/edit_cache.dir
+/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/zephyr/subsys/console/CMakeFiles/rebuild_cache.dir
+/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/zephyr/subsys/console/CMakeFiles/edit_cache.dir
 /home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/zephyr/subsys/fs/CMakeFiles/rebuild_cache.dir
 /home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/zephyr/subsys/fs/CMakeFiles/edit_cache.dir
 /home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/zephyr/subsys/net/CMakeFiles/rebuild_cache.dir
@@ -294,5 +296,5 @@
 /home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/src/time_handler/CMakeFiles/edit_cache.dir
 /home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/src/watchdog/CMakeFiles/rebuild_cache.dir
 /home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/src/watchdog/CMakeFiles/edit_cache.dir
-/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/src/ruuvi.endpoints.c/CMakeFiles/rebuild_cache.dir
-/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/src/ruuvi.endpoints.c/CMakeFiles/edit_cache.dir
+/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/components/ruuvi.endpoints.c/CMakeFiles/rebuild_cache.dir
+/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/components/ruuvi.endpoints.c/CMakeFiles/edit_cache.dir

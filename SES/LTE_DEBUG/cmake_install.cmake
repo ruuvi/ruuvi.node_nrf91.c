@@ -1,4 +1,4 @@
-# Install script for directory: ~/ncs/nrf/applications/ruuvi.node_nrf91.c
+# Install script for directory: /home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -34,16 +34,16 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("~/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/zephyr/cmake_install.cmake")
-  include("~/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/src/adv_post/cmake_install.cmake")
-  include("~/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/src/api/cmake_install.cmake")
-  include("~/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/src/led_controller/cmake_install.cmake")
-  include("~/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/src/uart_controller/cmake_install.cmake")
-  include("~/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/src/gps_controller/cmake_install.cmake")
-  include("~/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/src/http_controller/cmake_install.cmake")
-  include("~/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/src/time_handler/cmake_install.cmake")
-  include("~/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/src/watchdog/cmake_install.cmake")
-  include("~/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/src/ruuvi.endpoints.c/cmake_install.cmake")
+  include("/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/zephyr/cmake_install.cmake")
+  include("/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/src/adv_post/cmake_install.cmake")
+  include("/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/src/api/cmake_install.cmake")
+  include("/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/src/led_controller/cmake_install.cmake")
+  include("/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/src/uart_controller/cmake_install.cmake")
+  include("/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/src/gps_controller/cmake_install.cmake")
+  include("/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/src/http_controller/cmake_install.cmake")
+  include("/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/src/time_handler/cmake_install.cmake")
+  include("/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/src/watchdog/cmake_install.cmake")
+  include("/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/components/ruuvi.endpoints.c/cmake_install.cmake")
 
 endif()
 
@@ -55,5 +55,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "~/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

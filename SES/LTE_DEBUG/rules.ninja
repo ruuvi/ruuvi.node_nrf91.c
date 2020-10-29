@@ -6,7 +6,7 @@
 # It is included in the main 'build.ninja'.
 
 # =============================================================================
-# Project: ruuvi.node_nrf911.c
+# Project: ruuvi.node_nrf91.c
 # Configuration: LTE_DEBUG
 # =============================================================================
 # =============================================================================
@@ -623,7 +623,7 @@ rule C_STATIC_LIBRARY_LINKER__kernel
 # Rule for re-running cmake.
 
 rule RERUN_CMAKE
-  command = /usr/bin/cmake -S~/ncs/nrf/applications/ruuvi.node_nrf91.c -B~/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG
+  command = /usr/bin/cmake -S/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c -B/home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/LTE_DEBUG
   description = Re-running CMake...
   generator = 1
 

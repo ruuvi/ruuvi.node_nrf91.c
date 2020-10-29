@@ -32,30 +32,3 @@ Copyright (C) 2019 Free Software Foundation, Inc.
 This is free software; see the source for copying conditions.  There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-Performing C SOURCE FILE Test check_fmacro_prefix_map__home_ruuviUser_ncs_nrf_applications_ruuvi_node_nrf91_c_CMAKE_SOURCE_DIR_C__nostartfiles__nostdlib__isystem___home_ruuviUser_gnuarmemb_bin____lib_gcc_arm_none_eabi_9_3_1_include___isystem___home_ruuviUser_gnuarmemb_bin____lib_gcc_arm_none_eabi_9_3_1_include_fixed___Wl___unresolved_symbols_ignore_in_object_files__Wl___entry_0 succeeded with the following output:
-Change Dir: /home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/CMakeFiles/CMakeTmp
-
-Run Build Command:"/usr/bin/ninja" "cmTC_db34e"
-[1/2] Building C object CMakeFiles/cmTC_db34e.dir/src.c.obj
-[2/2] Linking C executable cmTC_db34e
-
-Source file was:
-int main(void) { return 0; }
-Performing C SOURCE FILE Test check_fmacro_prefix_map__home_ruuviUser_ncs_zephyr_ZEPHYR_BASE_C__nostartfiles__nostdlib__isystem___home_ruuviUser_gnuarmemb_bin____lib_gcc_arm_none_eabi_9_3_1_include___isystem___home_ruuviUser_gnuarmemb_bin____lib_gcc_arm_none_eabi_9_3_1_include_fixed___Wl___unresolved_symbols_ignore_in_object_files__Wl___entry_0 succeeded with the following output:
-Change Dir: /home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/CMakeFiles/CMakeTmp
-
-Run Build Command:"/usr/bin/ninja" "cmTC_21425"
-[1/2] Building C object CMakeFiles/cmTC_21425.dir/src.c.obj
-[2/2] Linking C executable cmTC_21425
-
-Source file was:
-int main(void) { return 0; }
-Performing C SOURCE FILE Test check_fmacro_prefix_map__home_ruuviUser_ncs_WEST_TOPDIR_C__nostartfiles__nostdlib__isystem___home_ruuviUser_gnuarmemb_bin____lib_gcc_arm_none_eabi_9_3_1_include___isystem___home_ruuviUser_gnuarmemb_bin____lib_gcc_arm_none_eabi_9_3_1_include_fixed___Wl___unresolved_symbols_ignore_in_object_files__Wl___entry_0 succeeded with the following output:
-Change Dir: /home/ruuviUser/ncs/nrf/applications/ruuvi.node_nrf91.c/SES/NBIOT_DEBUG/CMakeFiles/CMakeTmp
-
-Run Build Command:"/usr/bin/ninja" "cmTC_853aa"
-[1/2] Building C object CMakeFiles/cmTC_853aa.dir/src.c.obj
-[2/2] Linking C executable cmTC_853aa
-
-Source file was:
-int main(void) { return 0; }
