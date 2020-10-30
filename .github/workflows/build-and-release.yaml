@@ -79,7 +79,7 @@ jobs:
           sudo apt-get -y remove python-cryptography python3-cryptography
           sudo env "PATH=$PATH" pip3 install -r bootloader/mcuboot/scripts/requirements.txt
           cd nrf && cd applications
-          git clone https://github.com/${GITHUB_REPOSITORY} ruuvi.node_nrf91.c
+          git clone --recursive https://github.com/${GITHUB_REPOSITORY} ruuvi.node_nrf91.c
           cd ruuvi.node_nrf91.c
           git reset --hard ${GITHUB_SHA}
 
