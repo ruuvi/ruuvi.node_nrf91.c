@@ -18,11 +18,7 @@ LOG_MODULE_REGISTER(uart_controller, CONFIG_RUUVI_NODE_LOG_LEVEL);
 //Define the device
 #define BLE_UART "UART_1"
 static struct device *uart_dev;
-
 #define RX_BUFFER_MAX_SIZE 1024
-
-int rx_size = 0;
-int rx_i = 0;
 
 /**USER_TYPES***/
 /*start*/
@@ -40,11 +36,15 @@ typedef struct __terminal_struct
 /**USER_VARIABLES***/
 /*start*/
 terminal_struct_t terminal;
+atomic_t cmd_sent;
+time_t cmd_sent_t;
+int rx_size = 0;
+int rx_i = 0;
+
 /*end*/
 
-static void rx_parse_task(void){
-    if (terminal.size != 0)
-    {
+void rx_parse_task(void){
+    if (terminal.size != 0){
         if(terminal.rx_buffer[RE_CA_UART_STX_INDEX] == RE_CA_UART_STX){
             re_ca_uart_payload_t uart_payload = { 0 };
             switch (terminal.rx_buffer[RE_CA_UART_CMD_INDEX]){
@@ -73,7 +73,6 @@ static void rx_parse_task(void){
                 case RE_CA_UART_ADV_RPRT:
                     re_ca_uart_decode (terminal.rx_buffer, &uart_payload);
                     adv_post_send_report((void *)&uart_payload);
-                    // Do something
                     break;
                 case RE_CA_UART_DEVICE_ID:
                     re_ca_uart_decode (terminal.rx_buffer, &uart_payload);
@@ -91,18 +90,16 @@ static void rx_parse_task(void){
                     break;
             }
         }
-        memset(terminal.rx_buffer, 0, RX_BUFFER_MAX_SIZE);
-        terminal.size = 0;
     }
 }
 
 static void uart_fifo_callback(struct device *dev)
 {
+    if (!uart_irq_update(dev)) {
+        printk("Error: uart_irq_update");
+    }
     if (terminal.size == 0){
-        uint8_t data;
-        if (!uart_irq_update(dev)) {
-            LOG_ERR("Error: uart_irq_update");
-        }
+        u8_t data;
         if (uart_irq_rx_ready(dev)) {
             int rx_size_it = uart_fifo_read(dev, &data, 1);
             if(rx_size_it > 0){
@@ -112,26 +109,50 @@ static void uart_fifo_callback(struct device *dev)
                     ++rx_i;
                 }
                 else{
-                    terminal.size = rx_size;
                     terminal.rx_buffer[rx_i] = data;
+                    terminal.size = rx_size;
                     rx_i=0;
                     rx_size = 0;
-                    rx_parse_task();
+                    /* All RX packets are sent to be decoded.
+                     * Usually this will be BLE ADV data.
+                     */
+                    if(!atomic_get(&cmd_sent)){
+                        rx_parse_task();
+                    }
+                    /* For five seconds after a command is sent,
+                     * look for responses only. Everything else is discarded.
+                     */
+                    else{
+                        if((k_uptime_get() - cmd_sent_t) <= 5000){
+                            if(terminal.rx_buffer[RE_CA_UART_CMD_INDEX] == RE_CA_UART_ACK || 
+                                terminal.rx_buffer[RE_CA_UART_CMD_INDEX] == RE_CA_UART_DEVICE_ID){
+                                rx_parse_task();
+                            }
+                        }
+                        else{
+                            atomic_set(&cmd_sent, 0);
+                        }
+                    }
+                    memset(terminal.rx_buffer, 0, RX_BUFFER_MAX_SIZE);
+                    terminal.size = 0;
                 }
             }
         }
     }
-    
 }
 
 
 void uart_driver_write(uint8_t *data, uint8_t data_length)      
 {
-    uint8_t i;
-    for (i = 0; i < data_length; i++) {
+    atomic_set(&cmd_sent, 1);
+    u8_t i;
+    for (i = 0; i < data_length; ++i) {
         //printk("%02X", data[i]);
         uart_poll_out(uart_dev, data[i]);
+        
     }
+    //printk("\n");
+    cmd_sent_t = k_uptime_get();
 }
 
 uint8_t uart_init()
@@ -143,6 +164,7 @@ uint8_t uart_init()
     else{
         uart_irq_callback_set(uart_dev, uart_fifo_callback);
         uart_irq_rx_enable(uart_dev);
+        ruuvi_send_nrf_get_id();
         return 0;
     } 
 }

@@ -166,6 +166,14 @@ config RUUVI_ENDPOINT_HTTPS
 	bool "Enable HTTPS"
 	default y
 
+config RUUVI_ENDPOINT_HTTP_PORT
+	int "HTTP Port to use"
+	default 80
+
+config RUUVI_ENDPOINT_HTTPS_PORT
+	int "HTTPS Port to use"
+	default 443
+
 config RUUVI_ENDPOINT_HOST
 	string "The domain of the ruuvi endpoint"
 	default "ruuvi.cloud"

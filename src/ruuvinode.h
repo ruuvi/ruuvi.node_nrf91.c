@@ -4,13 +4,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-//Used to controll Application Features
-//Plan to move into prj.conf
-#define USE_HTTP 1
-#define USE_MQTT 0
-
-#define HTTPS_MODE 0 //0 for http, 1 for https
-
 #define RUUVI_COMPANY_ID 0x0499
 
 #define MAC_LEN 12
@@ -53,3 +46,5 @@ typedef struct gw_metrics
 void mac_address_bin_init(mac_address_bin_t *p_mac, const uint8_t mac[6]);
 
 mac_address_str_t mac_address_to_str(const mac_address_bin_t *p_mac);
+
+void ruuvi_send_nrf_get_id(void);

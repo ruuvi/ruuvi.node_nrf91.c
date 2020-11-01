@@ -23,7 +23,8 @@ struct addrinfo hints = {
 		.ai_family = AF_INET,
 		.ai_socktype = SOCK_STREAM};
 
-static void close_http_socket(void){
+static void
+close_http_socket(void){
     LOG_INF("Finished. Closing HTTP socket");
     int err = close(fd);
     if (err){
@@ -31,7 +32,8 @@ static void close_http_socket(void){
     }	
 }
 
-static int open_http_socket(void){
+static int
+open_http_socket(void){
     LOG_INF("Opening HTTP Socket");
     static struct sockaddr_in local_addr;
     local_addr.sin_family = AF_INET;
@@ -43,7 +45,7 @@ static int open_http_socket(void){
         LOG_ERR("getaddrinfo err: %d\n\r", err);
     }
 
-    ((struct sockaddr_in *)res->ai_addr)->sin_port = htons(80);
+    ((struct sockaddr_in *)res->ai_addr)->sin_port = htons(CONFIG_RUUVI_ENDPOINT_HTTP_PORT);
     
     fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -60,7 +62,8 @@ static int open_http_socket(void){
     return err;
 }
   
-int http_post(char *m, size_t t){
+int
+http_post(char *m, size_t t){
     int bytes;
     int send_data_len = snprintf(send_buf,
                             mtu_size,
@@ -86,14 +89,16 @@ int http_post(char *m, size_t t){
     return 0;
 }
 
-static void close_https_socket(void){
+static void
+close_https_socket(void){
     LOG_INF("Finished. Closing HTTPS socket");
     freeaddrinfo(res);
 	(void)close(fd);
 	return;
 }
 
-static int open_https_socket(void){
+static int
+open_https_socket(void){
     LOG_INF("Opening HTTP Socket");
     int err;
 	err = getaddrinfo(CONFIG_RUUVI_ENDPOINT_HOST, NULL, &hints, &res);
@@ -102,7 +107,7 @@ static int open_https_socket(void){
 		/* No clean up needed, just return */
 		return err;
 	}
-	((struct sockaddr_in *)res->ai_addr)->sin_port = htons(443);
+	((struct sockaddr_in *)res->ai_addr)->sin_port = htons(CONFIG_RUUVI_ENDPOINT_HTTPS_PORT);
 	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TLS_1_2);
 	if (fd == -1) {
 		LOG_ERR("Failed to open socket!\n");
@@ -135,7 +140,8 @@ static int open_https_socket(void){
 	return 0;
 }
 
-int https_post(char *m, size_t t){
+int
+https_post(char *m, size_t t){
     int bytes;
 
 	int send_data_len = snprintf(send_buf,
@@ -161,7 +167,8 @@ int https_post(char *m, size_t t){
 	return 0;
 }
 
-int open_socket(void){
+int
+open_socket(void){
     int err;
     if(CONFIG_RUUVI_ENDPOINT_HTTPS){
         err = open_https_socket();
@@ -173,7 +180,8 @@ int open_socket(void){
     }
 }
 
-void close_socket(void){
+void
+close_socket(void){
     if(CONFIG_RUUVI_ENDPOINT_HTTPS){
         close_https_socket();
     }
@@ -182,7 +190,8 @@ void close_socket(void){
     }
 }
 
-void http_send_online(char *imei, char *mac)
+void
+http_send_online(char *imei, char *mac)
 {
     cJSON *       root = cJSON_CreateObject();
 
@@ -211,7 +220,8 @@ void http_send_online(char *imei, char *mac)
     free(json_str);
 }
 
-void http_send_advs(struct adv_report_table *reports,  double latitude, double longitude,  char *imei, char *mac)
+void
+http_send_advs(struct adv_report_table *reports,  double latitude, double longitude,  char *imei, char *mac)
 {
     cJSON *tags = 0;
     cJSON *location = cJSON_CreateObject();

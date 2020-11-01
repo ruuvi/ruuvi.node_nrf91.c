@@ -28,19 +28,22 @@ K_MUTEX_DEFINE(adv_table_mux);
 struct adv_report_table adv_reports;
 struct adv_report_table adv_reports_buf;
 
-void update_nrf_mac(mac_address_bin_t m){
+void
+update_nrf_mac(mac_address_bin_t m){
     nrf_mac = mac_address_to_str(&m);
     LOG_INF("NRF MAC: %s\n", nrf_mac.str_buf);
     return;
 }
 
-void update_position_data(double latitude, double longitude){
+void
+update_position_data(double latitude, double longitude){
     latT = latitude;
     longT = longitude;
     return;
 }
 
-void update_imei_data(void){
+void
+update_imei_data(void){
     int err = modem_info_string_get(MODEM_INFO_IMEI, gw_imei_buf, sizeof(gw_imei_buf));
 	if (err != GW_IMEI_LEN) {
 		LOG_ERR("modem_info_string_get(IMEI), error: %d", err);
@@ -89,7 +92,7 @@ is_hexstr(char *str)
 {
     for (int i = 0; i < strlen(str); i++)
     {
-        if (isxdigit(str[i]) == 0)
+        if (isxdigit((int) str[i]) == 0)
         {
             return 102;
         }
@@ -111,7 +114,8 @@ is_adv_report_valid(adv_report_t *adv)
     return err;
 }
 
-static int to_hex_str(char *out, u16_t out_size, const u8_t *in, u8_t in_size)
+static int
+to_hex_str(char *out, u16_t out_size, const u8_t *in, u8_t in_size)
 {
 	int bytes_written = 0;
 	int status;
@@ -167,17 +171,17 @@ parse_adv_report_from_uart(const re_ca_uart_payload_t *const msg, adv_report_t *
     return err;
 }
 
-static void
+/*static void
 adv_post_send_ack(void *arg)
 {
     // Do something
-}
+}*/
 
-static void
+/*static void
 adv_post_send_device_id(void *arg)
 {
     // Do something
-}
+}*/
 
 void
 adv_post_send_report(void *arg)
@@ -194,11 +198,13 @@ adv_post_send_report(void *arg)
     }
 }
 
-void online_post(void){
+void
+online_post(void){
     http_send_online(gw_imei_buf, nrf_mac.str_buf);
 }
 
-void adv_post(void)
+void
+adv_post(void)
 {
     adv_report_t *adv = 0;
     LOG_INF("advertisements in table:");
@@ -221,7 +227,6 @@ void adv_post(void)
     adv_reports_buf         = adv_reports;
     adv_reports.num_of_advs = 0; // clear the table
     k_mutex_unlock(&adv_table_mux);
-
 
     if (adv_reports_buf.num_of_advs){
         http_send_advs(&adv_reports_buf, latT, longT, gw_imei_buf, nrf_mac.str_buf);

@@ -6,6 +6,7 @@
 #include <console/console.h>
 #include <power/reboot.h>
 #include <logging/log_ctrl.h>
+#include <drivers/gps.h>
 
 #if defined(CONFIG_BSD_LIBRARY)
 #include <modem/bsdlib.h>
@@ -14,7 +15,9 @@
 #include <modem/modem_info.h>
 #endif /* CONFIG_BSD_LIBRARY */
 
-#include <drivers/gps.h>
+#if defined(CONFIG_BOOTLOADER_MCUBOOT)
+#include <dfu/mcuboot.h>
+#endif
 
 #include "api.h"
 #include "ruuvi_endpoint_ca_uart.h"
@@ -60,9 +63,9 @@ static char modem_fw_buf[MODEM_FW_LEN + 1];
 static void set_gps_enable(const bool enable);
 static void sensors_init(void);
 static void work_init(void);
-static bool data_send_enabled(void);
 
-static void shutdown_modem(void)
+static void
+shutdown_modem(void)
 {
 #if defined(CONFIG_LTE_LINK_CONTROL)
 	/* Turn off and shutdown modem */
@@ -86,7 +89,8 @@ enum error_type {
 	ERROR_SYSTEM_FAULT
 };
 
-void error_handler(enum error_type err_type, int err_code)
+void
+error_handler(enum error_type err_type, int err_code)
 {
 	atomic_set(&http_post_active, 0);
 	if (err_type == ERROR_CLOUD) {
@@ -113,7 +117,8 @@ void error_handler(enum error_type err_type, int err_code)
 #endif /* CONFIG_DEBUG */
 }
 
-void k_sys_fatal_error_handler(unsigned int reason,
+void
+k_sys_fatal_error_handler(unsigned int reason,
 			       const z_arch_esf_t *esf)
 {
 	ARG_UNUSED(esf);
@@ -125,18 +130,14 @@ void k_sys_fatal_error_handler(unsigned int reason,
 }
 
 /**@brief Recoverable BSD library error. */
-void bsd_recoverable_error_handler(uint32_t err)
+void
+bsd_recoverable_error_handler(uint32_t err)
 {
 	error_handler(ERROR_BSD_RECOVERABLE, (int)err);
 }
 
-static bool data_send_enabled(void)
-{
-	return (atomic_get(&http_post_active) ==
-		   1);
-}
-
-static void set_gps_enable(const bool enable)
+static void
+set_gps_enable(const bool enable)
 {
 	bool changing = (enable != gps_control_is_enabled());
 
@@ -150,7 +151,8 @@ static void set_gps_enable(const bool enable)
 	}
 }
 
-static void gps_handler(struct device *dev, struct gps_event *evt)
+static void
+gps_handler(struct device *dev, struct gps_event *evt)
 {
 	gps_last_active_time = k_uptime_get();
 	switch (evt->type) {
@@ -203,7 +205,8 @@ static void gps_handler(struct device *dev, struct gps_event *evt)
 /**@brief Configures modem to provide LTE link. Blocks until link is
  * successfully established.
  */
-static int modem_configure(void)
+static int
+modem_configure(void)
 {
 #if defined(CONFIG_BSD_LIBRARY)
 	if (IS_ENABLED(CONFIG_LTE_AUTO_INIT_AND_CONNECT)) {
@@ -236,7 +239,8 @@ connected:
 
 #if CONFIG_MODEM_INFO
 /**@brief Callback handler for LTE RSRP data. */
-static void modem_rsrp_handler(char rsrp_value)
+static void
+modem_rsrp_handler(char rsrp_value)
 {
 	/* RSRP raw values that represent actual signal strength are
 	 * 0 through 97 (per "nRF91 AT Commands" v1.1). If the received value
@@ -259,7 +263,8 @@ static void modem_rsrp_handler(char rsrp_value)
 }
 
 /**@brief Publish RSRP data to the cloud. */
-static void modem_rsrp_data_print(struct k_work *work)
+static void
+modem_rsrp_data_print(struct k_work *work)
 {
 	char buf[CONFIG_MODEM_INFO_BUFFER_SIZE] = {0};
 	static s32_t rsrp_prev; /* RSRP value last sent to cloud */
@@ -286,15 +291,14 @@ static void modem_rsrp_data_print(struct k_work *work)
 							K_SECONDS(CONFIG_HOLD_TIME_RSRP));
 		}
 	}
-
-	
 }
 #endif
 
 
 #if CONFIG_MODEM_INFO
 /**brief Initialize LTE status containers. */
-static void modem_data_init(void)
+static void
+modem_data_init(void)
 {
 	int err;
 	err = modem_info_init();
@@ -310,7 +314,8 @@ static void modem_data_init(void)
 #endif /* CONFIG_MODEM_INFO */
 
 /**@brief Initializes and submits delayed work. */
-static void work_init(void)
+static void
+work_init(void)
 {
 #if CONFIG_MODEM_INFO
 	k_delayed_work_init(&rsrp_work, modem_rsrp_data_print);
@@ -342,7 +347,8 @@ mac_address_to_str(const mac_address_bin_t *p_mac)
 }
 
 /** @brief Initialises the peripherals that are used by the application. */
-static void sensors_init(void)
+static void
+sensors_init(void)
 {
 	//Turns status LEDs on
 	led_init();
@@ -367,8 +373,6 @@ static void sensors_init(void)
 	}
 	LOG_INF("Modem FW Version : %s", log_strdup(modem_fw_buf));
 #endif /* CONFIG_MODEM_INFO */
-
-	
 
 	k_sleep(K_SECONDS(2));
 	update_ts_modem();
@@ -404,15 +408,13 @@ ruuvi_send_nrf_get_id(void)
     api_send_get_device_id(RE_CA_UART_GET_DEVICE_ID);
 }
 
-void main(void)
+void
+main(void)
 {
-	int err = 0;
-
 	LOG_INF("Ruuvi Node Started");
 	if(CONFIG_RUUVI_NODE_APP_VERSION){
 		LOG_INF("Version: %s", log_strdup(CONFIG_RUUVI_NODE_APP_VERSION));
 	}
-
 
 	//Used for GPS Work Handler
 	k_work_q_start(&application_work_q, application_stack_area,
@@ -427,13 +429,10 @@ void main(void)
 	// Initilise the peripherals
 	sensors_init();
 
-	ruuvi_send_nrf_get_id();
-
 	online_post();
 
 	gps_control_start(0);
 	
-
 	while(1){
 		flash_led(3, 50);
 		if (gps_control_is_active()) {
