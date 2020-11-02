@@ -23,6 +23,9 @@ double longT = 0;
 static char gw_imei_buf[GW_IMEI_LEN + 1];
 mac_address_str_t nrf_mac;
 
+/* Workaround until mac being received from the nRF52 reliably */
+mac_address_str_t imei_mac;
+
 K_MUTEX_DEFINE(adv_table_mux);
 
 struct adv_report_table adv_reports;
@@ -49,6 +52,14 @@ update_imei_data(void){
 		LOG_ERR("modem_info_string_get(IMEI), error: %d", err);
 	}
 	LOG_INF("Device IMEI: %s", log_strdup(gw_imei_buf));
+    mac_address_bin_t mac;
+    mac.mac[0U] = gw_imei_buf[0U];
+    mac.mac[1U] = gw_imei_buf[1U];
+    mac.mac[2U] = gw_imei_buf[2U];
+    mac.mac[3U] = gw_imei_buf[3U];
+    mac.mac[4U] = gw_imei_buf[4U];
+    mac.mac[5U] = gw_imei_buf[5U];
+    imei_mac = mac_address_to_str(&mac);
 }
 
 static int
@@ -115,7 +126,7 @@ is_adv_report_valid(adv_report_t *adv)
 }
 
 static int
-to_hex_str(char *out, u16_t out_size, const u8_t *in, u8_t in_size)
+to_hex_str(char *out, uint16_t out_size, const uint8_t *in, uint8_t in_size)
 {
 	int bytes_written = 0;
 	int status;
@@ -200,7 +211,8 @@ adv_post_send_report(void *arg)
 
 void
 online_post(void){
-    http_send_online(gw_imei_buf, nrf_mac.str_buf);
+    //http_send_online(gw_imei_buf, nrf_mac.str_buf);
+    http_send_online(gw_imei_buf, imei_mac.str_buf);
 }
 
 void
@@ -229,6 +241,7 @@ adv_post(void)
     k_mutex_unlock(&adv_table_mux);
 
     if (adv_reports_buf.num_of_advs){
-        http_send_advs(&adv_reports_buf, latT, longT, gw_imei_buf, nrf_mac.str_buf);
+        //http_send_advs(&adv_reports_buf, latT, longT, gw_imei_buf, nrf_mac.str_buf);
+        http_send_advs(&adv_reports_buf, latT, longT, gw_imei_buf, imei_mac.str_buf);
     }
 }

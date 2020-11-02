@@ -15,7 +15,7 @@ LOG_MODULE_REGISTER(watchdog, CONFIG_RUUVI_NODE_LOG_LEVEL);
 	((CONFIG_RUUVI_WATCHDOG_TIMEOUT_MSEC)/2)
 
 struct wdt_data_storage {
-	struct device *wdt_drv;
+	const struct device *wdt_drv;
 	int wdt_channel_id;
 	struct k_delayed_work system_workqueue_work;
 	struct k_work second_workqueue_work;

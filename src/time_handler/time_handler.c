@@ -12,11 +12,11 @@
 LOG_MODULE_REGISTER(time_handler, CONFIG_RUUVI_NODE_LOG_LEVEL);
 
 time_t epoch = 0;
-u32_t epoch_tk = 0;
+uint32_t epoch_tk = 0;
 
 time_t get_ts(void){
     time_t ts;
-    u32_t now;
+    uint32_t now;
     now = k_uptime_get_32();
     now = now - epoch_tk;
     now = now / 1000;

@@ -17,7 +17,7 @@ LOG_MODULE_REGISTER(uart_controller, CONFIG_RUUVI_NODE_LOG_LEVEL);
 
 //Define the device
 #define BLE_UART "UART_1"
-static struct device *uart_dev;
+const static struct device *uart_dev;
 #define RX_BUFFER_MAX_SIZE 1024
 
 /**USER_TYPES***/
@@ -93,13 +93,15 @@ void rx_parse_task(void){
     }
 }
 
-static void uart_fifo_callback(struct device *dev)
+static void 
+uart_fifo_callback(const struct device *dev, void *user_data)
 {
+    ARG_UNUSED(user_data);
     if (!uart_irq_update(dev)) {
         printk("Error: uart_irq_update");
     }
     if (terminal.size == 0){
-        u8_t data;
+        uint8_t data;
         if (uart_irq_rx_ready(dev)) {
             int rx_size_it = uart_fifo_read(dev, &data, 1);
             if(rx_size_it > 0){
@@ -141,11 +143,11 @@ static void uart_fifo_callback(struct device *dev)
     }
 }
 
-
-void uart_driver_write(uint8_t *data, uint8_t data_length)      
+void 
+uart_driver_write(uint8_t *data, uint8_t data_length)      
 {
     atomic_set(&cmd_sent, 1);
-    u8_t i;
+    uint8_t i;
     for (i = 0; i < data_length; ++i) {
         //printk("%02X", data[i]);
         uart_poll_out(uart_dev, data[i]);
@@ -155,7 +157,8 @@ void uart_driver_write(uint8_t *data, uint8_t data_length)
     cmd_sent_t = k_uptime_get();
 }
 
-uint8_t uart_init()
+uint8_t 
+uart_init()
 {
 	uart_dev = device_get_binding(BLE_UART);
     if (!uart_dev) {

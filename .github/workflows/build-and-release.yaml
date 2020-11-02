@@ -70,7 +70,7 @@ jobs:
           export PATH=~/.local/bin:/usr/share/rust/.cargo/bin:$PATH
           cd ${GITHUB_WORKSPACE}
           mkdir ncs && cd ncs
-          west init -m https://github.com/nrfconnect/sdk-nrf --mr v1.3.1
+          west init -m https://github.com/nrfconnect/sdk-nrf --mr v1.4.0
           west update
           west zephyr-export
           sudo env "PATH=$PATH" pip3 install pc_ble_driver_py

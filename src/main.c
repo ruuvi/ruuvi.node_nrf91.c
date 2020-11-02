@@ -38,8 +38,8 @@ LOG_MODULE_REGISTER(ruuvi_node, CONFIG_RUUVI_NODE_LOG_LEVEL);
 
 #if CONFIG_MODEM_INFO
 struct rsrp_data {
-	u16_t value;
-	u16_t offset;
+	uint16_t value;
+	uint16_t offset;
 };
 static struct k_delayed_work rsrp_work;
 static struct rsrp_data rsrp = {
@@ -55,7 +55,7 @@ static struct k_work_q application_work_q;
 
 // Sensor data
 static atomic_val_t http_post_active;
-static s64_t gps_last_active_time;
+static int64_t gps_last_active_time;
 static time_t gps_last_update_time;
 static struct modem_param_info modem_param;
 static char modem_fw_buf[MODEM_FW_LEN + 1];
@@ -137,6 +137,24 @@ bsd_recoverable_error_handler(uint32_t err)
 }
 
 static void
+gps_time_set(struct gps_pvt *gps_data)
+{
+	/* Change datetime.year and datetime.month to accommodate the
+	 * correct input format.
+	 */
+	struct tm gps_time = {
+		.tm_year = gps_data->datetime.year - 1900,
+		.tm_mon = gps_data->datetime.month - 1,
+		.tm_mday = gps_data->datetime.day,
+		.tm_hour = gps_data->datetime.hour,
+		.tm_min = gps_data->datetime.minute,
+		.tm_sec = gps_data->datetime.seconds,
+	};
+
+	update_ts_gps(&gps_time);
+}
+
+static void
 set_gps_enable(const bool enable)
 {
 	bool changing = (enable != gps_control_is_enabled());
@@ -152,7 +170,7 @@ set_gps_enable(const bool enable)
 }
 
 static void
-gps_handler(struct device *dev, struct gps_event *evt)
+gps_handler(const struct device *dev, struct gps_event *evt)
 {
 	gps_last_active_time = k_uptime_get();
 	switch (evt->type) {
@@ -177,6 +195,7 @@ gps_handler(struct device *dev, struct gps_event *evt)
 		LOG_INF("GPS_EVT_PVT_FIX");
 		gps_last_update_time = get_ts();
 		update_position_data(evt->pvt.latitude, evt->pvt.longitude);
+		gps_time_set(&evt->pvt);
 		gps_control_set_active(false);
 		LOG_INF("GPS will be started in %d seconds",
 			gps_control_get_gps_reporting_interval());
@@ -267,8 +286,8 @@ static void
 modem_rsrp_data_print(struct k_work *work)
 {
 	char buf[CONFIG_MODEM_INFO_BUFFER_SIZE] = {0};
-	static s32_t rsrp_prev; /* RSRP value last sent to cloud */
-	s32_t rsrp_current;
+	static int32_t rsrp_prev; /* RSRP value last sent to cloud */
+	int32_t rsrp_current;
 	size_t len;
 
 	if (atomic_get(&http_post_active) == 0){

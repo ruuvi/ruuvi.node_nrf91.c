@@ -59,10 +59,10 @@
 
 #define LED_TIME	10
 
-static struct device *dev_led_0;
-static struct device *dev_led_1;
-static struct device *dev_led_2;
-static struct device *dev_led_3;
+const static struct device *dev_led_0;
+const static struct device *dev_led_1;
+const static struct device *dev_led_2;
+const static struct device *dev_led_3;
 
 volatile int led0_state = 0;
 volatile int led1_state = 0;

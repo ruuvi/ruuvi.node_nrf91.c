@@ -163,8 +163,8 @@ endmenu # Firmware versioning
 menu "Ruuvi Endpoint"
 
 config RUUVI_ENDPOINT_HTTPS
-	bool "Enable HTTPS"
-	default y
+	int "Enable HTTPS"
+	default 1
 
 config RUUVI_ENDPOINT_HTTP_PORT
 	int "HTTP Port to use"
@@ -189,7 +189,7 @@ config RUUVI_WATCHDOG_TIMEOUT_MSEC
 	default 10000
 
 config RUUVI_GPS_UPDATE_INT
-	int "Update GPS posttion after x minutes"
+	int "Update GPS position after x minutes"
 	default 60
 
 config USE_AT_HOST

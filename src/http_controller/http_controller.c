@@ -47,7 +47,7 @@ open_http_socket(void){
 
     ((struct sockaddr_in *)res->ai_addr)->sin_port = htons(CONFIG_RUUVI_ENDPOINT_HTTP_PORT);
     
-    fd = socket(AF_INET, SOCK_STREAM, 0);
+    fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
     err = bind(fd, (struct sockaddr *)&local_addr,
                 sizeof(local_addr));
@@ -99,7 +99,7 @@ close_https_socket(void){
 
 static int
 open_https_socket(void){
-    LOG_INF("Opening HTTP Socket");
+    LOG_INF("Opening HTTPS Socket");
     int err;
 	err = getaddrinfo(CONFIG_RUUVI_ENDPOINT_HOST, NULL, &hints, &res);
 	if (err) {
@@ -205,7 +205,9 @@ http_send_online(char *imei, char *mac)
     }
 
     char *json_str = cJSON_Print(root);
-
+    
+    LOG_INF("%s", json_str);
+    
     cJSON_Delete(root);
     int err = open_socket();
     if(!err){
