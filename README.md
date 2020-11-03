@@ -2,11 +2,11 @@
 nRF91 project for Ruuvi Node
 
 # Build Environment
-Ruuvi Node is developed using nRF Connect SDK(NCS) V1.3.1.
+Ruuvi Node is developed using nRF Connect SDK(NCS) V1.4.0.
 
 ## NCS
 Nordic Semiconductor keeps up-to-date instructions on how to setup the SDK for 
-Linux, Mac OSX and Windows. Instructions can be found at https://developer.nordicsemi.com/nRF_Connect_SDK/doc/1.3.1/nrf/getting_started.html
+Linux, Mac OSX and Windows. Instructions can be found at https://developer.nordicsemi.com/nRF_Connect_SDK/doc/1.4.0/nrf/getting_started.html
 
 # Cloning
 To clone the directory follow the following. the examples given assume you are using linux.
@@ -51,7 +51,7 @@ These files can be used later on with nRF Connect or nrfjprog to flash the board
 # Building Segger
 
 ## Installing SES
-Segger Embedded Studio Nordic Edition is required to be able to work with NCS projects. Instruction on installing this can be found at: https://developer.nordicsemi.com/nRF_Connect_SDK/doc/1.3.1/nrf/gs_installing.html#installing-ses-nordic-edition
+Segger Embedded Studio Nordic Edition is required to be able to work with NCS projects. Instruction on installing this can be found at: https://developer.nordicsemi.com/nRF_Connect_SDK/doc/1.4.0/nrf/gs_installing.html#installing-ses-nordic-edition
 
 ## Preparing the project
 Due to the imorting scripts and the project being based on cmake and ninja the files are customised to the user. A script has been that can be run to chaneg the default username 'ruuviUser' to your. NOTE: this assumes that you are working on linux
