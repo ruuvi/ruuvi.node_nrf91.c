@@ -192,6 +192,10 @@ config RUUVI_GPS_UPDATE_INT
 	int "Update GPS position after x minutes"
 	default 60
 
+config RUUVI_GPS_FAILED_RETRY
+	int "Reattempt to gain a GPS position after x minutes"
+	default 5
+
 config USE_AT_HOST
 	bool "Enable AT commands"
 	default y

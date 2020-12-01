@@ -55,7 +55,8 @@ static struct k_work_q application_work_q;
 
 // Sensor data
 static atomic_val_t http_post_active;
-static int64_t gps_last_active_time;
+static time_t gps_last_active_time;
+static bool gps_first_fix = false;
 static time_t gps_last_update_time;
 static struct modem_param_info modem_param;
 static char modem_fw_buf[MODEM_FW_LEN + 1];
@@ -172,7 +173,7 @@ set_gps_enable(const bool enable)
 static void
 gps_handler(const struct device *dev, struct gps_event *evt)
 {
-	gps_last_active_time = k_uptime_get();
+	gps_last_active_time = get_ts();
 	switch (evt->type) {
 	case GPS_EVT_SEARCH_STARTED:
 		LOG_INF("GPS_EVT_SEARCH_STARTED");
@@ -185,8 +186,9 @@ gps_handler(const struct device *dev, struct gps_event *evt)
 	case GPS_EVT_SEARCH_TIMEOUT:
 		LOG_INF("GPS_EVT_SEARCH_TIMEOUT");
 		gps_control_set_active(false);
-		LOG_INF("GPS will be attempted again in %d seconds",
-			gps_control_get_gps_reporting_interval());
+		LOG_INF("GPS will be attempted again in %d minutes",
+			CONFIG_RUUVI_GPS_FAILED_RETRY);
+		gps_control_stop(0);
 		break;
 	case GPS_EVT_PVT:
 		/* Don't spam logs */
@@ -194,6 +196,7 @@ gps_handler(const struct device *dev, struct gps_event *evt)
 	case GPS_EVT_PVT_FIX:
 		LOG_INF("GPS_EVT_PVT_FIX");
 		gps_last_update_time = get_ts();
+		gps_first_fix = true;
 		update_position_data(evt->pvt.latitude, evt->pvt.longitude);
 		gps_time_set(&evt->pvt);
 		gps_control_set_active(false);
@@ -458,7 +461,14 @@ main(void)
 			k_sleep(K_SECONDS(1));
 		}
 		else{
-			if(((get_ts() - gps_last_update_time) /60) >= CONFIG_RUUVI_GPS_UPDATE_INT){
+			if(gps_first_fix && ((get_ts() - gps_last_update_time) / 60) >= CONFIG_RUUVI_GPS_UPDATE_INT){
+				LOG_INF("A: %lld", (get_ts() - gps_last_update_time) / 60);
+				gps_control_start(0);
+				// Slight delay to allow gps control to become active
+				k_sleep(K_SECONDS(1));
+			}
+			else if(!gps_first_fix && ((get_ts() - gps_last_active_time) / 60) >= CONFIG_RUUVI_GPS_FAILED_RETRY){
+				LOG_INF("B: %lld", (get_ts() - gps_last_active_time) / 60);
 				gps_control_start(0);
 				// Slight delay to allow gps control to become active
 				k_sleep(K_SECONDS(1));
