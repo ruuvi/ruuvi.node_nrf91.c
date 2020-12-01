@@ -462,13 +462,11 @@ main(void)
 		}
 		else{
 			if(gps_first_fix && ((get_ts() - gps_last_update_time) / 60) >= CONFIG_RUUVI_GPS_UPDATE_INT){
-				LOG_INF("A: %lld", (get_ts() - gps_last_update_time) / 60);
 				gps_control_start(0);
 				// Slight delay to allow gps control to become active
 				k_sleep(K_SECONDS(1));
 			}
 			else if(!gps_first_fix && ((get_ts() - gps_last_active_time) / 60) >= CONFIG_RUUVI_GPS_FAILED_RETRY){
-				LOG_INF("B: %lld", (get_ts() - gps_last_active_time) / 60);
 				gps_control_start(0);
 				// Slight delay to allow gps control to become active
 				k_sleep(K_SECONDS(1));

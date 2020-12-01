@@ -43,6 +43,8 @@ open_http_socket(void){
     int err = getaddrinfo(CONFIG_RUUVI_ENDPOINT_HOST, NULL, NULL, &res);
     if(err){
         LOG_ERR("getaddrinfo err: %d\n\r", err);
+        /* No clean up needed, just return */
+        return err;
     }
 
     ((struct sockaddr_in *)res->ai_addr)->sin_port = htons(CONFIG_RUUVI_ENDPOINT_HTTP_PORT);
